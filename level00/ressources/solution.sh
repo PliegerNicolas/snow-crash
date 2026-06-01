@@ -172,7 +172,7 @@ main() {
     flag00_username="flag00";
     flag00_password="";
 
-    trap 'close_ssh_socket "$level00_socket_path" "$host" "$port" "$level00_username"' EXIT;
+    trap 'close_ssh_socket "$level00_socket_path" "$host" "$port" "$level00_username"' EXIT USR1;
     init_ssh_socket "$level00_socket_path" "$host" "$port" "$level00_username" "$level00_password" || exit 1;
     flag00_password=$(
         flag00_owned_readable_files=$(ssh_exec_via_socket "$ssh_socket_path" "$host" "$port" "$level00_username" "find / -user flag00 -perm -o=r 2>/dev/null");
@@ -183,19 +183,20 @@ main() {
         flag00_password=$(rotn "$flag00_cyphered_password" 15 "+");
         echo "$flag00_password";
     );
-    close_ssh_socket "$level00_socket_path" "$host" "$port" "$level00_username";
+    kill -USR1 $$;
 
-    trap 'close_ssh_socket "$flag00_socket_path" "$host" "$port" "$flag00_username"' EXIT;
+    trap 'close_ssh_socket "$flag00_socket_path" "$host" "$port" "$flag00_username"' EXIT USR1;
     init_ssh_socket "$flag00_socket_path" "$host" "$port" "$flag00_username" "$flag00_password" || exit 1;
     checkflag=$(
         checkflag_str=$(ssh_exec_via_socket "$ssh_socket_path" "$host" "$port" "$flag00_username" "getflag");
         checkflag=$(echo -n "$checkflag_str" | head -n 1 | awk  '{print $NF}');
         echo "$checkflag";
     );
-    close_ssh_socket "$flag00_socket_path" "$host" "$port" "$flag00_username"
+    kill -USR1 $$;
 
     flag_outpath="$CURR_DIR_PATH/../flag";
-    echo "$checkflag" > $flag_outpath;
+    echo "Checkflag: $checkflag";
+    echo "$checkflag" > "$flag_outpath";
 }
 
 main "$@";

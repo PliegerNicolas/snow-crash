@@ -51,6 +51,40 @@ flag01:42hDRfypTqqnw:3001:3001::/home/flag/flag01:/bin/bash
 
 #### Scanning step 5.2
 
+On modern systems, hashes are stored in the `/etc/shadow` file and mapped to `/etc/passwd` files when the `x` character is used as specified [here](https://man7.org/linux/man-pages/man5/passwd.5.html). Some older systems would hash their passwords and store them directly in the `/etc/passwd` file. That would mean they are accessible and readable by anyone.
+Here, `flag01`'s password hash is exposed. This behaviour is unusual and a sign of insecurity. We can try to dehash it.
+
+As seen [here](https://man7.org/linux/man-pages/man8/pam_unix.8.html), the default encryption method for passwd is SHA512.  
+But the hashed password is `42hDRfypTqqnw` and it doesn't match the expected format.
+```sh
+$ grep ENCRYPT_METHOD /etc/login.defs
+# This variable is deprecated. You should use ENCRYPT_METHOD.
+ENCRYPT_METHOD SHA512
+# Only used if ENCRYPT_METHOD is set to SHA256 or SHA512.
+```
+
+First, we want to identify which hashing algorithm could have produced this value. For that, we use [hashcat](https://hashcat.net/hashcat/) with its `--identify` option.
+```sh
+$ docker run --interactive --tty --rm dizcza/docker-hashcat:pocl hashcat --identify "42hDRfypTqqnw"
+The following hash-mode match the structure of your input hash:
+
+      # | Name                                                       | Category
+  ======+============================================================+======================================
+   1500 | descrypt, DES (Unix), Traditional DES                      | Operating System
+```
+
+Hashcat identifies the algorithm as `Traditional DES` (cf. man 3 crypt).
+From there, we can try to recover the password with strategies such as straight attacks, combinator attacks, mask attacks, or brute-force attacks, and any combination of these.
+
+Since this is an exercise, and we may not have access to the GPU or its drivers at school, we choose to run the attack on the CPU and start with a well-known wordlist such as [rockyou.txt](https://weakpass.com/wordlists/rockyou.txt) that we downloaded and stored [here](./wordlists/rockyou.txt).
+```sh
+$ docker run --rm -it -v "./wordlists/rockyou.txt:/wordlist.txt:ro" -v "./out:/out:rw" dizcza/docker-hashcat:pocl hashcat --attack-mode 3 --hash-type 1500 "42hDRfypTqqnw" /wordlist.txt -o /out/cracked.txt
+# This takes just 
+```
+
+
+
+
 On modern systems, hashes are stored in `/etc/shadow` and mapped to `/etc/passwd` such as specified [here](https://man7.org/linux/man-pages/man5/passwd.5.html). Older systems would hash their passwords and put them directly in the `/etc/passwd`.
 Here, `flag01`'s password hash is exposed in a suspicious way. This needs deeper investigation (PS: We love that the hash starts with 42).
 
@@ -73,9 +107,14 @@ The following hash-mode match the structure of your input hash:
    1500 | descrypt, DES (Unix), Traditional DES                      | Operating System
 ```
 
-We next use [hashcat](https://hashcat.net/hashcat/) to try to brute force it.
+We next use [hashcat](https://hashcat.net/hashcat/) to try to guess the password.
+As we are in the context of an exercice we assume the password will be weak and available in public available wordlists such as [rockyou.txt](https://weakpass.com/wordlists/rockyou.txt).
+For portability reasons we refuse to use the GPU (thing that would enforce installation of drivers) so we crack the password using our CPU.
 ```sh
-# In full CPU mode (would be relatively slow)
-$ docker run --interactive --tty --rm dizcza/docker-hashcat:pocl hashcat --hash-type 1500 --attack-mode 3 --status --status-timer 10 "42hDRfypTqqnw" "?a?a?a?a?a?a"
+$ docker run --rm -it -v "$(pwd)/wordlists/rockyou.txt:/wordlist.txt:ro" -v "$(pwd)/out:/out:rw" dizcza/docker-hashcat:pocl hashcat --attack-mode 3 --hash-type 1500 "42hDRfypTqqnw" /wordlist.txt -o /out/cracked.txt
+# Cracks the password in ~2min.
+$ cat ./out/cracked.txt | tail -n 1 | awk -F ':' '{print $NF}'
+abcdefg
 ```
-[John The Reaper](https://github.com/openwall/john) can be a good alternative.
+
+We then could access, using that password, the target `flag01` account and get the flag using the `getflag` command.

