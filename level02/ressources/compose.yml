@@ -1,0 +1,7 @@
+services:
+  tshark:
+    container_name: tshark
+    image: parrotsec/tshark:latest
+    volumes:
+      - ./wireshark:/pcaps:ro
+    command: tshark -i eth0
