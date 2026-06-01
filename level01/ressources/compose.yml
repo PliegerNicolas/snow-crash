@@ -1,0 +1,5 @@
+services:
+  hashcat:
+    container_name: hashcat
+    image: dizcza/docker-hashcat:pocl
+    command: hashcat --identify "asd"

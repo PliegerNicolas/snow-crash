@@ -182,13 +182,16 @@ main() {
         # En usant du site: "https://www.dcode.fr/chiffre-cesar" on découvre qu'il s'agit d'un chiffrement césar, aussi dit rot-n.
         flag00_password=$(rotn "$flag00_cyphered_password" 15 "+");
         echo "$flag00_password";
-    )
+    );
     close_ssh_socket "$level00_socket_path" "$host" "$port" "$level00_username";
 
     trap 'close_ssh_socket "$flag00_socket_path" "$host" "$port" "$flag00_username"' EXIT;
     init_ssh_socket "$flag00_socket_path" "$host" "$port" "$flag00_username" "$flag00_password" || exit 1;
-    checkflag_str=$(ssh_exec_via_socket "$ssh_socket_path" "$host" "$port" "$flag00_username" "getflag");
-    checkflag=$(echo -n "$checkflag_str" | head -n 1 | awk  '{print $NF}');
+    checkflag=$(
+        checkflag_str=$(ssh_exec_via_socket "$ssh_socket_path" "$host" "$port" "$flag00_username" "getflag");
+        checkflag=$(echo -n "$checkflag_str" | head -n 1 | awk  '{print $NF}');
+        echo "$checkflag";
+    );
     close_ssh_socket "$flag00_socket_path" "$host" "$port" "$flag00_username"
 
     flag_outpath="$CURR_DIR_PATH/../flag";
