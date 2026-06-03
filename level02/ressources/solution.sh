@@ -11,6 +11,33 @@ log() {
     echo "[$(date +'%Y-%m-%d %H:%M:%S')] $*";
 }
 
+##############
+### DOCKER ###
+##############
+
+assert_docker() {
+    if ! command -v docker >/dev/null 2>&1; then
+        log "Error: the 'docker' command is required. Considering installing the docker from https://docs.docker.com/engine/install.";
+        exit 1;
+    fi
+}
+
+tshark_extract_tcp_payload() {
+    assert_docker;
+    input_pcap_file="$1";
+
+    if [ -z "$input_pcap_file" ]; then
+        log "Error: tshark_extract_tcp_payload: missing input pcap file path" >&2;
+        return 1;
+    elif [ ! -f "$input_pcap_file" ]; then
+        log "Error: tshark_extract_tcp_payload: input pcap file not found: $input_pcap_file" >&2;
+        return 1;
+    fi
+
+    hex_output=$(docker run --rm -v "$input_pcap_file:/in.pcap:ro" parrotsec/tshark:latest -r "/in.pcap" -Y "tcp.payload && tcp.stream==0" -T fields -e tcp.payload);
+    echo "$hex_output";
+}
+
 ###########
 ### SSH ###
 ###########
@@ -110,26 +137,26 @@ main() {
     flag02_username="flag02";
     flag02_password="";
 
-    level02_pcap_localpath="$CURR_DIR_PATH/wireshark/level02.pcap";
-
     trap 'close_ssh_socket "$level02_socket_path" "$host" "$port" "$level02_username"' EXIT USR1;
     init_ssh_socket "$level02_socket_path" "$host" "$port" "$level02_username" "$level02_password" || exit 1;
-    ssh_exec_via_socket "$level02_socket_path" "$host" "$port" "$level02_username" "cat level02.pcap" > "$level02_pcap_localpath";
+    pcap_tmp_file=$(mktemp /tmp/level02_XXXXXX.pcap);
+    ssh_exec_via_socket "$level02_socket_path" "$host" "$port" "$level02_username" "cat level02.pcap" > "$pcap_tmp_file" || exit 1;
+    hex_tcp_traffic=$(tshark_extract_tcp_payload "$pcap_tmp_file");
+    rm -f "$pcap_tmp_file";
     kill -USR1 $$;
 
+    ascii_tcp_traffic=$(echo "$hex_tcp_traffic" | xxd -r -p);
+    flag02_password=$(printf '%s' "$ascii_tcp_traffic" | grep "Password: " | head -n 1 | awk  '{print $NF}');
 
+    trap 'close_ssh_socket "$flag02_socket_path" "$host" "$port" "$flag02_username"' EXIT USR1;
+    init_ssh_socket "$flag02_socket_path" "$host" "$port" "$flag02_username" "$flag02_password" || exit 1;
+    checkflag_str=$(ssh_exec_via_socket "$flag02_socket_path" "$host" "$port" "$flag02_username" "getflag");
+    checkflag=$(echo -n "$checkflag_str" | head -n 1 | awk  '{print $NF}');
+    kill -USR1 $$;
 
-    # rm -f "$level02_pcap_localpath";
-
-    # trap 'close_ssh_socket "$flag01_socket_path" "$host" "$port" "$flag01_username"' EXIT USR1;
-    # init_ssh_socket "$flag01_socket_path" "$host" "$port" "$flag01_username" "$flag01_password" || exit 1;
-    # checkflag_str=$(ssh_exec_via_socket "$flag01_socket_path" "$host" "$port" "$flag01_username" "getflag");
-    # checkflag=$(echo -n "$checkflag_str" | head -n 1 | awk  '{print $NF}');
-    # kill -USR1 $$;
-
-    # flag_outpath="$CURR_DIR_PATH/../flag";
-    # echo "Checkflag: $checkflag";
-    # echo "$checkflag" > "$flag_outpath";
+    flag_outpath="$CURR_DIR_PATH/../flag";
+    echo "Checkflag: $checkflag";
+    echo "$checkflag" > "$flag_outpath";
 }
 
 main "$@";
