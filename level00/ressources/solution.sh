@@ -160,6 +160,26 @@ ssh_exec_via_socket() {
     return $?;
 }
 
+ssh_download_via_socket() {
+    fn_name="ssh_download_via_socket";
+    ssh_socket_path="$1";
+    host="$2";
+    port="$3";
+    username="$4";
+    path_to_remote_file="$5";
+    local_path_to_save="$6";
+
+    if [ -z "$ssh_socket_path" ] || [ -z "$host" ] || [ -z "$port" ] || [ -z "$username" ] || [ -z "$local_path_to_save" ] || [ -z "$path_to_remote_file" ]; then
+        log "Error: ${fn_name}: missing arguments. You should provide <ssh_socket_path> <host> <port> <username> <path/to/remote/file> </local/path/to/save/> [options...]." >&2;
+        return 1;
+    fi
+
+    shift 6;
+
+    scp -o "ControlPath=${ssh_socket_path}" -P "$port" "$@" "$username@$host:$path_to_remote_file" "$local_path_to_save";
+    return $?;
+}
+
 main() {
     host="localhost";
     port="4242";
@@ -175,9 +195,9 @@ main() {
     trap 'close_ssh_socket "$level00_socket_path" "$host" "$port" "$level00_username"' EXIT USR1;
     init_ssh_socket "$level00_socket_path" "$host" "$port" "$level00_username" "$level00_password" || exit 1;
     flag00_password=$(
-        flag00_owned_readable_files=$(ssh_exec_via_socket "$ssh_socket_path" "$host" "$port" "$level00_username" "find / -user flag00 -perm -o=r 2>/dev/null");
+        flag00_owned_readable_files=$(ssh_exec_via_socket "$level00_socket_path" "$host" "$port" "$level00_username" "find / -user flag00 -perm -o=r 2>/dev/null");
         flag00_cyphered_password_filename=$(echo "$flag00_owned_readable_files" | grep "/usr/sbin/" |head -n 1);
-        flag00_cyphered_password=$(ssh_exec_via_socket "$ssh_socket_path" "$host" "$port" "$level00_username" "cat ${flag00_cyphered_password_filename}");
+        flag00_cyphered_password=$(ssh_exec_via_socket "$level00_socket_path" "$host" "$port" "$level00_username" "cat ${flag00_cyphered_password_filename}");
         # Le MDP est stocké dans un fichier lisible mais encrypté (pas hashé).
         # En usant du site: "https://www.dcode.fr/chiffre-cesar" on découvre qu'il s'agit d'un chiffrement césar, aussi dit rot-n.
         flag00_password=$(rotn "$flag00_cyphered_password" 15 "+");
@@ -188,7 +208,7 @@ main() {
     trap 'close_ssh_socket "$flag00_socket_path" "$host" "$port" "$flag00_username"' EXIT USR1;
     init_ssh_socket "$flag00_socket_path" "$host" "$port" "$flag00_username" "$flag00_password" || exit 1;
     checkflag=$(
-        checkflag_str=$(ssh_exec_via_socket "$ssh_socket_path" "$host" "$port" "$flag00_username" "getflag");
+        checkflag_str=$(ssh_exec_via_socket "$flag00_socket_path" "$host" "$port" "$flag00_username" "getflag");
         checkflag=$(echo -n "$checkflag_str" | head -n 1 | awk  '{print $NF}');
         echo "$checkflag";
     );

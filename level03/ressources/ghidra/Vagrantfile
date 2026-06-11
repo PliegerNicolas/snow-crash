@@ -1,0 +1,62 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  # https://docs.vagrantup.com.
+  # https://vagrantcloud.com/search.
+  config.vm.box = "bento/debian-13.1"
+
+  gui_enabled=ENV.fetch("GUI", "false").downcase == "true"
+  config.vm.provider "virtualbox" do |vb|
+    vb.gui = gui_enabled
+    vb.cpus = 4
+    vb.memory = "6144" # 6GB
+  end
+
+  config.vm.synced_folder ".", "/vagrant", disabled: true
+  config.vm.synced_folder "./data", "/vagrant/data", owner: "vagrant", group: "vagrant"
+
+  config.vm.provision "shell", inline: <<-SHELL
+    set -euo pipefail
+    apt-get update
+    apt-get install -y xfce4 xfce4-goodies lightdm dbus-x11
+
+    systemctl set-default graphical.target
+    systemctl enable lightdm
+
+    apt-get autoremove -y
+    apt-get clean
+  SHELL
+
+  config.vm.provision "shell", inline: <<-SHELL
+    apt-get update
+    apt-get install -y --no-install-recommends openjdk-21-jdk
+    apt-get install -y --no-install-recommends wget unzip
+
+    tmp_zip="/tmp/ghidra.zip"
+    trap 'rm -f $tmp_zip' EXIT
+    wget -q https://github.com/NationalSecurityAgency/ghidra/releases/download/Ghidra_12.1.2_build/ghidra_12.1.2_PUBLIC_20260605.zip -O "$tmp_zip"
+    
+    mkdir -p /opt/ghidra
+    unzip -oq $tmp_zip -d /opt/ghidra
+    
+    ghidra_dir="/opt/ghidra/ghidra_12.1.2_PUBLIC"
+    ghidra_src_executable="$ghidra_dir/ghidraRun"
+    
+    chown -R vagrant:vagrant "$ghidra_dir"
+    ln -s "$ghidra_dir" /opt/ghidra/latest
+    chmod +x "$ghidra_src_executable"
+    ln -sf "$ghidra_src_executable" /usr/local/bin/ghidra
+    
+    ghidra_desktop_entry_path="/usr/share/applications/ghidra.desktop"
+    ghidra_icon_path="$ghidra_dir/docs/images/GHIDRA_1.png"
+    vagrant_desktop_entry="/home/vagrant/Desktop/ghidra.desktop"
+
+    printf "[Desktop Entry]\nName=Ghidra\nComment=Reverse Engineering Suite\nExec=/usr/local/bin/ghidra\nIcon=$ghidra_icon_path\nTerminal=false\nType=Application\nCategories=Development;\n" > "$ghidra_desktop_entry_path"
+    install -d -o vagrant -g vagrant -m 755 "$(dirname "$vagrant_desktop_entry")"
+    cp "$ghidra_desktop_entry_path" "$vagrant_desktop_entry"
+
+    apt-get autoremove -y
+    apt-get clean
+  SHELL
+end
