@@ -34,7 +34,7 @@ tshark_extract_tcp_payload() {
         return 1;
     fi
 
-    hex_output=$(docker run --rm -v "$input_pcap_file:/in.pcap:ro" parrotsec/tshark:latest -r "/in.pcap" -Y "tcp.payload && tcp.stream==0" -T fields -e tcp.payload);
+    hex_output=$(docker run --rm -v "$input_pcap_file:/in.pcap:ro" docker.io/parrotsec/tshark:latest -r "/in.pcap" -Y "tcp.payload && tcp.stream==0" -T fields -e tcp.payload);
     echo "$hex_output";
 }
 
@@ -147,7 +147,7 @@ main() {
     # assert_docker;
 
     host="localhost";
-    port="4242";
+    port="4242"; # cf. port forwarding to VM 4242 => 4242.
 
     level02_socket_path=$(get_ssh_socket_path "snowcrash_level02_socket") || exit 1;
     level02_username="level02";
@@ -165,7 +165,7 @@ main() {
     rm -f "$pcap_tmp_file";
     kill -USR1 $$;
 
-    ascii_tcp_traffic=$(echo "$hex_tcp_traffic" | xxd -r -p);
+    ascii_tcp_traffic=$(echo "$hex_tcp_traffic" | xxd -r -p | tr -d '\000');
     flag02_password=$(printf '%s' "$ascii_tcp_traffic" | grep "Password: " | head -n 1 | awk  '{print $NF}');
 
     trap 'close_ssh_socket "$flag02_socket_path" "$host" "$port" "$flag02_username"' EXIT USR1;

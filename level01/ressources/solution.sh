@@ -183,7 +183,7 @@ main() {
     assert_docker;
 
     host="localhost";
-    port="4242";
+    port="4242"; # cf. port forwarding to VM 4242 => 4242.
 
     level01_socket_path=$(get_ssh_socket_path "snowcrash_level01_socket") || exit 1;
     level01_username="level01";
@@ -193,12 +193,12 @@ main() {
     flag01_username="flag01";
     flag01_password="";
 
-    wordlist_path=$(download_rockyou_wordlist "$CURR_DIR_PATH/wordlists" || exit 1);
+    wordlist_path=$(download_rockyou_wordlist "$CURR_DIR_PATH/tshark/wordlists" || exit 1);
 
     trap 'close_ssh_socket "$level01_socket_path" "$host" "$port" "$level01_username"' EXIT USR1;
     init_ssh_socket "$level01_socket_path" "$host" "$port" "$level01_username" "$level01_password" || exit 1;
     hashed_password=$(ssh_exec_via_socket "$level01_socket_path" "$host" "$port" "$level01_username" "cat /etc/passwd | grep ${flag01_username} | cut -d: -f2");
-    flag01_password=$(hashcat_crack_hash "$hashed_password"  "$CURR_DIR_PATH/out" "$wordlist_path");
+    flag01_password=$(hashcat_crack_hash "$hashed_password"  "$CURR_DIR_PATH/tshark/out" "$wordlist_path");
     kill -USR1 $$;
 
     trap 'close_ssh_socket "$flag01_socket_path" "$host" "$port" "$flag01_username"' EXIT USR1;

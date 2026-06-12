@@ -182,7 +182,7 @@ ssh_download_via_socket() {
 
 main() {
     host="localhost";
-    port="4242";
+    port="4242"; # cf. port forwarding to VM 4242 => 4242.
 
     level00_socket_path=$(get_ssh_socket_path "snowcrash_level00_socket") || exit 1;
     level00_username="level00";

