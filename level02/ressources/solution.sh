@@ -157,22 +157,20 @@ main() {
     flag02_username="flag02";
     flag02_password="";
 
-    trap 'close_ssh_socket "$level02_socket_path" "$host" "$port" "$level02_username"' EXIT USR1;
     init_ssh_socket "$level02_socket_path" "$host" "$port" "$level02_username" "$level02_password" || exit 1;
     pcap_tmp_file=$(mktemp /tmp/level02_XXXXXX.pcap);
     ssh_exec_via_socket "$level02_socket_path" "$host" "$port" "$level02_username" "cat level02.pcap" > "$pcap_tmp_file" || exit 1;
     hex_tcp_traffic=$(tshark_extract_tcp_payload "$pcap_tmp_file");
     rm -f "$pcap_tmp_file";
-    kill -USR1 $$;
+    close_ssh_socket "$level02_socket_path" "$host" "$port" "$level02_username";
 
     ascii_tcp_traffic=$(echo "$hex_tcp_traffic" | xxd -r -p | tr -d '\000');
     flag02_password=$(printf '%s' "$ascii_tcp_traffic" | grep "Password: " | head -n 1 | awk  '{print $NF}');
 
-    trap 'close_ssh_socket "$flag02_socket_path" "$host" "$port" "$flag02_username"' EXIT USR1;
     init_ssh_socket "$flag02_socket_path" "$host" "$port" "$flag02_username" "$flag02_password" || exit 1;
     checkflag_str=$(ssh_exec_via_socket "$flag02_socket_path" "$host" "$port" "$flag02_username" "getflag");
     checkflag=$(echo -n "$checkflag_str" | head -n 1 | awk  '{print $NF}');
-    kill -USR1 $$;
+    close_ssh_socket "$flag02_socket_path" "$host" "$port" "$flag02_username";
 
     flag_outpath="$CURR_DIR_PATH/../flag";
     echo "Checkflag: $checkflag";
