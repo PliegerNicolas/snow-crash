@@ -144,7 +144,7 @@ ssh_download_via_socket() {
 }
 
 main() {
-    # assert_docker;
+    assert_docker;
 
     host="localhost";
     port="4242"; # cf. port forwarding to VM 4242 => 4242.
@@ -176,7 +176,7 @@ main() {
 
     flag_outpath="$CURR_DIR_PATH/../flag";
     echo "Checkflag: $checkflag";
-    echo "$checkflag" > "$flag_outpath";
+    echo -n "$checkflag" > "$flag_outpath";
 }
 
 main "$@";
