@@ -1,4 +1,4 @@
-# level01
+# level03
 
 ## Scanning
 
@@ -23,19 +23,18 @@ d--x--x--x 1 root    users    340 Aug 30  2015 ..
 
 ## Solution
 
-The binary file `/home/level03/level03` seems suspicious.  
-And executing it confrims this:  
+The binary file `/home/user/level03/level03` seems suspicious.  
+And executing it confirms this:  
 ```
 $ ./level03 
 Exploit me
 ```
+**Privileges**
 
 We determined it is a prime candidate for privilege escalation because:
 - It is owned by `flag03` (our target).
 - The group owner is `level03` (which matches our user's group).
 - It has the `setuid permission bit` (`s`) set, for the group, which grants us the owner's privileges during the program's execution.
-
-**Privileges**
 
 This means that, during script execution through the user `level03`, the privilege state is as follows:  
 - Real UID: `level03`

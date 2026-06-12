@@ -216,7 +216,7 @@ main() {
 
     flag_outpath="$CURR_DIR_PATH/../flag";
     echo "Checkflag: $checkflag";
-    echo "$checkflag" > "$flag_outpath";
+    echo -n "$checkflag" > "$flag_outpath";
 }
 
 main "$@";
