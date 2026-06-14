@@ -8,6 +8,7 @@ Vagrant.configure("2") do |config|
 
   gui_enabled=ENV.fetch("GUI", "false").downcase == "true"
   config.vm.provider "virtualbox" do |vb|
+    vb.name = "ghidra"
     vb.gui = gui_enabled
     vb.cpus = 4
     vb.memory = "6144" # 6GB

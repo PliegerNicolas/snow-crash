@@ -35,7 +35,7 @@ $ find / -user flag00 \( -perm -o=r -o -perm -o=w \) -print 2>/dev/null
 
 ## Solution
 
-#### Scanning step 4
+### Vulnerability
 
 We found a suspect file called `/usr/sbin/john` and it's counterpart `/rofs/usr/sbin/john` we'll ignore.
 It contains encrypted text suspicious enough to look like a password.
