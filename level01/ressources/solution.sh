@@ -281,7 +281,7 @@ main() {
         exit 1;
     fi
 
-    cracked_password=$(cat "$out_dir/cracked.txt" | head -n 1 | cut -d: -f2);
+    cracked_password=$(cat "$out_dir/cracked.txt" | tail -n 1 | cut -d: -f2);
     flag01_password="$cracked_password";
 
     init_ssh_socket "$flag01_socket_path" "$host" "$port" "$flag01_username" "$flag01_password" || exit 1;

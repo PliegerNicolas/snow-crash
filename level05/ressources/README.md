@@ -56,6 +56,8 @@ $ find / \( -path /proc -o -path /dev -o -path /rofs \) -prune -o -user flag05 -
 
 ## Solution
 
+### Files
+
 We have found multiple suspicious files:
 - `/usr/lib/byobu/mail`
 - `/var/mail/level05`
@@ -104,6 +106,8 @@ for i in /opt/openarenaserver/* ; do
 done
 ```
 It executes scripts located in `/opt/openarenaserver/` before deleting them. It enforces a maximum CPU execution time of 5 seconds and runs each script in a subshell in debug mode using `bash -x`.
+
+### Vulnerability
 
 If the suggested crontab rule exists, it would execute blindly all scripts present in the `/opt/openarenaserver/` folder as the `flag05` user.
 We can verify it's existance by creating a test script.

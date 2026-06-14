@@ -22,15 +22,18 @@ d--x--x--x 1 root    users    340 Aug 30  2015 ..
 
 ## Solution
 
-#### Scanning step 2
+### Files
 
-The file `~/level02.pcap` is binary. It is probably generated through applications such as [wireshark](https://www.wireshark.org/).
-The `.pcap` file format describes captured network traffic. It stands for `packet capture`.
+`/home/user/level02/level02.pcap` seems to be a binary file.  
+After quick verifications on [google](https://en.wikipedia.org/wiki/Pcap) we discover it stands for **Packet Capture**.  
+It is probably generated through applications such as [wireshark](https://www.wireshark.org/).
 
-The file can be copied locally doing something such as:
+We copy it locally for further investigation...
 ```sh
 $ sshpass -p "$(cat ../../level01/flag)" scp -P 4242 level02@localhost:~/level02.pcap ./level02.pcap
 ```
+
+### Vulnerability
 
 When we try to read the file using an ASCII interpreter such as `cat` or `grep -a`, we see something noticable.
 The presence of readable text confirms the packets were not encrypted.

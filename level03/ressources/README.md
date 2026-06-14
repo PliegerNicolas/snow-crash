@@ -23,13 +23,12 @@ d--x--x--x 1 root    users    340 Aug 30  2015 ..
 
 ## Solution
 
-The binary file `/home/user/level03/level03` seems suspicious.  
-And executing it confirms this:  
+`/home/user/level03/level03` seems suspicious. It is a binary executable. And executing it confirms this:  
 ```
 $ ./level03 
 Exploit me
 ```
-**Privileges**
+### Script Privileges
 
 We determined it is a prime candidate for privilege escalation because:
 - It is owned by `flag03` (our target).
@@ -42,7 +41,7 @@ This means that, during script execution through the user `level03`, the privile
 - Effective UID: `flag03`
 - Effective GUID: `level03`
 
-**Dynamic binary analysis**
+### Script content
 
 We used different tools to identify potential vulnerabilities:  
 - [`ltrace`](https://man7.org/linux/man-pages/man1/ltrace.1.html) to identify library calls.
@@ -81,7 +80,7 @@ int	main(int argc, char **argv, char **envp)
 }
 ```
 
-**Vulnerabilities exploitation**
+### Vulnerability
 
 The binary uses `system()` to execute `/usr/bin/env echo Exploit me`.
 

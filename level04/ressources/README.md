@@ -23,9 +23,9 @@ d--x--x--x  1 root    users    340 Aug 30  2015 ..
 
 ## Solution
 
-The perl script `/home/user/level04/level04.pl` seems suspicious.
+`/home/user/level04/level04.pl` seems suspicious. It is a perl script.
 
-**Privileges**
+### Script privileges
 
 We determined it is a prime candidate for privilege escalation because:
 - It is owned by `flag04` (our target).
@@ -38,7 +38,7 @@ This means that, during script execution through the user `level04`, the privile
 - Effective UID: `flag04`
 - Effective GUID: `level04`
 
-**Script content**
+### Script content
 
 When executing it we an output indicating usage of the HTTP protocol.
 ```sh
@@ -85,7 +85,7 @@ From what we can understand, the process should roughly act the following way:
 6. It calls the function `x` and passes it the value of the HTTP `query parameter x`.
 
 
-**Vulnerability**
+### Vulnerability
 
 The script allows HTTP parameter injection through the **x query parameter** via [CGI](https://www.ibm.com/docs/en/i/7.6.0?topic=functionality-cgi). This value is directly passed into a spawned shell command (through Perl backticks), with **effective flag04 privileges**.
 ```sh
