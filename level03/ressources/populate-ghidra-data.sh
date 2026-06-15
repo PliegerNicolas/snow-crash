@@ -35,13 +35,17 @@ ssh_download() {
     return 0;
 }
 
+############
+### MAIN ###
+############
+
 main() {
     host="localhost";
     port="4242";
-    level03_username="level06";
-    level03_password=$(cat "$CURR_DIR_PATH/../../../level05/flag");
+    level03_username="level03";
+    level03_password=$(cat "$CURR_DIR_PATH/../../level02/flag");
 
-    ssh_download "$host" "$port" "$level03_username" "$level03_password" "~/level06" "$CURR_DIR_PATH/data/level06" || return 1;
+    ssh_download "$host" "$port" "$level03_username" "$level03_password" "~/level03" "$CURR_DIR_PATH/ghidra/data/level03" || return 1;
 }
 
 main "$@";

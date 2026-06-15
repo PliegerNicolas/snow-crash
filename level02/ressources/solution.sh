@@ -22,21 +22,21 @@ assert_docker() {
     fi
 }
 
-tshark_extract_tcp_payload() {
-    assert_docker;
-    input_pcap_file="$1";
+# tshark_extract_tcp_payload() {
+#     assert_docker;
+#     input_pcap_file="$1";
 
-    if [ -z "$input_pcap_file" ]; then
-        log "Error: tshark_extract_tcp_payload: missing input pcap file path" >&2;
-        return 1;
-    elif [ ! -f "$input_pcap_file" ]; then
-        log "Error: tshark_extract_tcp_payload: input pcap file not found: $input_pcap_file" >&2;
-        return 1;
-    fi
+#     if [ -z "$input_pcap_file" ]; then
+#         log "Error: tshark_extract_tcp_payload: missing input pcap file path" >&2;
+#         return 1;
+#     elif [ ! -f "$input_pcap_file" ]; then
+#         log "Error: tshark_extract_tcp_payload: input pcap file not found: $input_pcap_file" >&2;
+#         return 1;
+#     fi
 
-    hex_output=$(docker run --rm -v "$input_pcap_file:/in.pcap:ro" docker.io/parrotsec/tshark:latest -r "/in.pcap" -Y "tcp.payload && tcp.stream==0" -T fields -e tcp.payload);
-    echo "$hex_output";
-}
+#     hex_output=$(docker run --rm -v "$input_pcap_file:/in.pcap:ro" docker.io/parrotsec/tshark:latest -r "/in.pcap" -Y "tcp.payload && tcp.stream==0" -T fields -e tcp.payload);
+#     echo "$hex_output";
+# }
 
 ###########
 ### SSH ###
@@ -123,25 +123,9 @@ ssh_exec_via_socket() {
     return $?;
 }
 
-ssh_download_via_socket() {
-    fn_name="ssh_download_via_socket";
-    ssh_socket_path="$1";
-    host="$2";
-    port="$3";
-    username="$4";
-    path_to_remote_file="$5";
-    local_path_to_save="$6";
-
-    if [ -z "$ssh_socket_path" ] || [ -z "$host" ] || [ -z "$port" ] || [ -z "$username" ] || [ -z "$local_path_to_save" ] || [ -z "$path_to_remote_file" ]; then
-        log "Error: ${fn_name}: missing arguments. You should provide <ssh_socket_path> <host> <port> <username> <path/to/remote/file> </local/path/to/save/> [options...]." >&2;
-        return 1;
-    fi
-
-    shift 6;
-
-    scp -o "ControlPath=${ssh_socket_path}" -P "$port" "$@" "$username@$host:$path_to_remote_file" "$local_path_to_save";
-    return $?;
-}
+############
+### MAIN ###
+############
 
 main() {
     assert_docker;
@@ -157,15 +141,21 @@ main() {
     flag02_username="flag02";
     flag02_password="";
 
+    tshark_symlink_path="$CURR_DIR_PATH/tshark";
+    packet_capture_filepath="$tshark_symlink_path/pcap/in.pcap";
+
     init_ssh_socket "$level02_socket_path" "$host" "$port" "$level02_username" "$level02_password" || exit 1;
-    pcap_tmp_file=$(mktemp /tmp/level02_XXXXXX.pcap);
-    ssh_exec_via_socket "$level02_socket_path" "$host" "$port" "$level02_username" "cat level02.pcap" > "$pcap_tmp_file" || exit 1;
-    hex_tcp_traffic=$(tshark_extract_tcp_payload "$pcap_tmp_file");
-    rm -f "$pcap_tmp_file";
+    ssh_exec_via_socket "$level02_socket_path" "$host" "$port" "$level02_username" "cat level02.pcap" > "$packet_capture_filepath";
     close_ssh_socket "$level02_socket_path" "$host" "$port" "$level02_username";
 
-    ascii_tcp_traffic=$(echo "$hex_tcp_traffic" | xxd -r -p | tr -d '\000');
-    flag02_password=$(printf '%s' "$ascii_tcp_traffic" | grep "Password: " | head -n 1 | awk  '{print $NF}');
+    if [ ! -f "$packet_capture_filepath" ]; then
+        log "Error: the pcap file was not found after downloading it from the level02 server." >&2;
+        return 1;
+    fi
+
+    pcap_hexdump=$("$tshark_symlink_path/tshark.sh" --hexdump-tcp "$packet_capture_filepath");
+    pcap_asciidump=$(echo "$pcap_hexdump" | xxd -r -p);
+    flag02_password=$(echo "$pcap_asciidump" | grep "Password: " | head -n 1 | awk '{print $NF}');
 
     init_ssh_socket "$flag02_socket_path" "$host" "$port" "$flag02_username" "$flag02_password" || exit 1;
     checkflag_str=$(ssh_exec_via_socket "$flag02_socket_path" "$host" "$port" "$flag02_username" "getflag");

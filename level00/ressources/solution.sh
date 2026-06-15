@@ -160,25 +160,9 @@ ssh_exec_via_socket() {
     return $?;
 }
 
-ssh_download_via_socket() {
-    fn_name="ssh_download_via_socket";
-    ssh_socket_path="$1";
-    host="$2";
-    port="$3";
-    username="$4";
-    path_to_remote_file="$5";
-    local_path_to_save="$6";
-
-    if [ -z "$ssh_socket_path" ] || [ -z "$host" ] || [ -z "$port" ] || [ -z "$username" ] || [ -z "$local_path_to_save" ] || [ -z "$path_to_remote_file" ]; then
-        log "Error: ${fn_name}: missing arguments. You should provide <ssh_socket_path> <host> <port> <username> <path/to/remote/file> </local/path/to/save/> [options...]." >&2;
-        return 1;
-    fi
-
-    shift 6;
-
-    scp -o "ControlPath=${ssh_socket_path}" -P "$port" "$@" "$username@$host:$path_to_remote_file" "$local_path_to_save";
-    return $?;
-}
+############
+### MAIN ###
+############
 
 main() {
     host="localhost";
