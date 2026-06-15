@@ -3,13 +3,13 @@
 CURR_FILE_PATH="$(realpath "$0")"
 CURR_DIR_PATH="$(dirname "$CURR_FILE_PATH")"
 
-#############
-### UTILS ###
-#############
-
 log() {
     echo "[$(date +'%Y-%m-%d %H:%M:%S')] $*";
 }
+
+###############
+### ASSERTS ###
+###############
 
 assert_vagrant() {
     if ! command -v vagrant >/dev/null 2>&1; then
@@ -18,6 +18,9 @@ assert_vagrant() {
     fi
 }
 
+#############
+### UTILS ###
+#############
 
 ###############
 ### VAGRANT ###
@@ -54,15 +57,19 @@ start_vagrant_ghidra_box() {
     return $?;
 }
 
+############
+### MAIN ###
+############
+
 main() {
     assert_vagrant;
 
     if [ "$#" -eq 0 ]; then
         echo "Usage: $0 [OPTIONS]";
         echo "Options:";
-        echo "  -p, --provision    Provision the vagrant ghidra box";
-        echo "  -b, --build        Build a golden image of the vagrant ghidra box (output path can be specified as argument, default: ./ghidra.box)";
-        echo "  -s, --start        Start the vagrant ghidra box";
+        echo "  -p, --provision     Provision the vagrant ghidra box";
+        echo "  -b, --build         Build a golden image of the vagrant ghidra box (output path can be specified as argument, default: ./ghidra.box)";
+        echo "  -s, --start         Start the vagrant ghidra box";
         return 0;
     fi
 

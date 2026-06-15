@@ -160,6 +160,10 @@ ssh_exec_via_socket() {
     return $?;
 }
 
+############
+### MAIN ###
+############
+
 main() {
     host="localhost";
     port="4242"; # cf. port forwarding to VM 4242 => 4242.
