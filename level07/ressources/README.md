@@ -70,6 +70,9 @@ int main(int argc,char **argv,char **envp)
   return iVar1;
 }
 ```
+
+### Vulnerability
+
 This binary exhibits a classic **OS command injection vulnerability** with privilege escalation.
 We can shortcut the `/bin/echo` call using a command separator (`;`) and pass to `system()` any other command we'd wish.
 

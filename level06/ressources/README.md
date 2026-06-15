@@ -137,7 +137,7 @@ We notice the usage of `preg_replace`. It's usage with the `\e` modifier is disc
 
 The `preg_replace` with usage of the `\e` modifier is known to be a vulnerability and it's usage is discouraged or prevented in modern versions of PHP.
 
-**Vulnerabilitie**
+**Vulnerability**
 
 `/home/user/level06/level06.php` uses the `preg_replace` function with the `\e` (execute) modifier.  
 In modern versions of PHP, it is [discouraged or prevented](https://www.php.net/manual/en/function.preg-replace.php) because it is [known to](https://stackoverflow.com/questions/38039318/e-modifier-is-deprecated) easily introduce **Arbitrary Code Execution (ACE)** opportunities.
