@@ -11,6 +11,61 @@ log() {
     echo "[$(date +'%Y-%m-%d %H:%M:%S')] $*";
 }
 
+char_to_decimal() {
+    char="$1";
+
+    case "$char" in
+        ?)
+            printf "%d" "'$char";
+            ;;
+        *)
+            log "Error: char_to_decimal: invalid char value: $char" >&2;
+            return 1;
+            ;;
+    esac
+}
+
+decimal_to_char() {
+    decimal="$1";
+
+    case "$decimal" in
+        '' | *[!0-9]*)
+            log "Error: decimal_to_char: invalid decimal value: $decimal" >&2;
+            return 1;
+            ;;
+        *)
+            printf "%b" "\\$(printf '%03o' "$decimal")";
+            ;;
+    esac
+}
+
+
+decode() {
+    encoded_str="$1";
+    decoded_str="";
+
+    if [ -z "$encoded_str" ]; then
+        log "Error: decode: missing encoded string" >&2;
+        return 1;
+    fi
+
+    char_shift=0;
+    while [ ! -z "$encoded_str" ]; do
+        char="${encoded_str%${encoded_str#?}}"; # Get first char.
+        encoded_str="${encoded_str#?}"; # Strip first char.
+
+        decimal_char=$(char_to_decimal "$char");
+        normalized_decimal_char=$(((decimal_char - char_shift % 128 + 128) % 128));
+        shifted_char=$(decimal_to_char $normalized_decimal_char);
+
+        decoded_str="${decoded_str}${shifted_char}";
+
+        char_shift=$((char_shift + 1));
+    done
+
+    echo "$decoded_str";
+}
+
 ###########
 ### SSH ###
 ###########
@@ -108,13 +163,25 @@ main() {
     level09_username="level09";
     level09_password=$(cat "$CURR_DIR_PATH/../../level08/flag");
 
+    flag09_socket_path=$(get_ssh_socket_path "snowcrash_flag09_socket") || exit 1;
+    flag09_username="flag09";
+    flag09_password="";
+
     init_ssh_socket "$level09_socket_path" "$host" "$port" "$level09_username" "$level09_password";
-    ssh_exec_via_socket "$level09_socket_path" "$host" "$port" "$level09_username" "echo 'test'";
+    encoded_token=$(ssh_exec_via_socket "$level09_socket_path" "$host" "$port" "$level09_username" "cat /home/user/level09/token");
     close_ssh_socket "$level09_socket_path" "$host" "$port" "$level09_username";
 
-    # flag_outpath="$CURR_DIR_PATH/../flag";
-    # echo "Checkflag: $checkflag";
-    # echo -n "$checkflag" > "$flag_outpath";
+    decoded_token=$(decode $encoded_token);
+    flag09_password="$decoded_token";
+
+    init_ssh_socket "$flag09_socket_path" "$host" "$port" "$flag09_username" "$flag09_password";
+    checkflag_str=$(ssh_exec_via_socket "$flag09_socket_path" "$host" "$port" "$flag09_username" "getflag");
+    checkflag=$(echo -n "$checkflag_str" | head -n 1 | awk  '{print $NF}');
+    close_ssh_socket "$flag09_socket_path" "$host" "$port" "$flag09_username";
+
+    flag_outpath="$CURR_DIR_PATH/../flag";
+    echo "Checkflag: $checkflag";
+    echo -n "$checkflag" > "$flag_outpath";
 }
 
 main "$@";
