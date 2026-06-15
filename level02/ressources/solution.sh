@@ -22,22 +22,6 @@ assert_docker() {
     fi
 }
 
-# tshark_extract_tcp_payload() {
-#     assert_docker;
-#     input_pcap_file="$1";
-
-#     if [ -z "$input_pcap_file" ]; then
-#         log "Error: tshark_extract_tcp_payload: missing input pcap file path" >&2;
-#         return 1;
-#     elif [ ! -f "$input_pcap_file" ]; then
-#         log "Error: tshark_extract_tcp_payload: input pcap file not found: $input_pcap_file" >&2;
-#         return 1;
-#     fi
-
-#     hex_output=$(docker run --rm -v "$input_pcap_file:/in.pcap:ro" docker.io/parrotsec/tshark:latest -r "/in.pcap" -Y "tcp.payload && tcp.stream==0" -T fields -e tcp.payload);
-#     echo "$hex_output";
-# }
-
 ###########
 ### SSH ###
 ###########

