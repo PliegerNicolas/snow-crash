@@ -71,7 +71,7 @@ int main(int argc,char **argv,char **envp)
 }
 ```
 This binary exhibits a classic **OS command injection vulnerability** with privilege escalation.
-We can shortcut the `/bin/echo` call and pass to `system()` any other command we'd wish.
+We can shortcut the `/bin/echo` call using a command separator (`;`) and pass to `system()` any other command we'd wish.
 
 ```sh
 $ LOGNAME="; getflag;" /home/user/level07/level07
