@@ -184,20 +184,63 @@ for (size_t i = 0; i < strlen(argv[1]); i++)
 ```
 This matches the expected behaviour we observed before.
 
+We just need to reverse the program's behaviour to decrypt to token.
+```sh
+char_to_decimal() {
+    char="$1";
 
-
-- It disallows usage
-
-Le script semble bourré de sécurités:
-- il empêche la traçage du processus par des outils de débuguage comme par exemple gdb, ltrace, ...
-- Il empêche l'injection de librairies dynamiques en vérifiant l'absence de la variable d'environnement `LD_PRELOAD` et du fichier `/etc/ld.so.preload`. Il vérifie *probablement* le nom de librairies chargées en mémoire (dans `/proc/self/maps`).
-- Des mécaniques classiques tel que les stack canaries apportés par les compilateurs.
-
-Sur base de nos observations précédentes et une analyse brève du code nous pouvons définir que, outre les vérifications et techniques d'obfuscation, le programme se comporte quelque chose comme:
-```c
-size_t i = 0;
-while (i < strlen(argv[1])) {
-  putchar(argv[1][i] + i);
-  i++;
+    case "$char" in
+        ?)
+            printf "%d" "'$char";
+            ;;
+        *)
+            log "Error: char_to_decimal: invalid char value: $char" >&2;
+            return 1;
+            ;;
+    esac
 }
+
+decimal_to_char() {
+    decimal="$1";
+
+    case "$decimal" in
+        '' | *[!0-9]*)
+            log "Error: decimal_to_char: invalid decimal value: $decimal" >&2;
+            return 1;
+            ;;
+        *)
+            printf "%b" "\\$(printf '%03o' "$decimal")";
+            ;;
+    esac
+}
+
+decode() {
+    encoded_str="$1";
+    decoded_str="";
+
+    if [ -z "$encoded_str" ]; then
+        log "Error: decode: missing encoded string" >&2;
+        return 1;
+    fi
+
+    char_shift=0;
+    while [ ! -z "$encoded_str" ]; do
+        char="${encoded_str%${encoded_str#?}}"; # Get first char.
+        encoded_str="${encoded_str#?}"; # Strip first char.
+
+        decimal_char=$(char_to_decimal "$char");
+        normalized_decimal_char=$(((decimal_char - char_shift % 128 + 128) % 128));
+        shifted_char=$(decimal_to_char $normalized_decimal_char);
+
+        decoded_str="${decoded_str}${shifted_char}";
+
+        char_shift=$((char_shift + 1));
+    done
+
+    echo "$decoded_str";
+}
+
+decode "$encoded_str"
 ```
+
+We got the token an can now login as `flag09` and get the flag.
