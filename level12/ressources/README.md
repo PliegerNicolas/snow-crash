@@ -62,11 +62,16 @@ use CGI qw{param};
 print "Content-type: text/html\n\n";
 
 sub t {
+  # 1. Capture the two first passed arguments.
   $nn = $_[1];
   $xx = $_[0];
+  # 2. Normalize argument 1: uppercase it and strip everything from the first found whitespace.
   $xx =~ tr/a-z/A-Z/; 
   $xx =~ s/\s.*//;
+  # 3. /!\ Using backsticks, execute in shell.
+  # It searches the /tmp/xd file for the given extended-regexp pattern.
   @output = `egrep "^$xx" /tmp/xd 2>&1`;
+  # 4. Parse the results, assuming a 'KEY:VALUE' pattern and return 1 if the second parameter is found as a VALUE, else 0.
   foreach $line (@output) {
       ($f, $s) = split(/:/, $line);
       if($s =~ $nn) {
@@ -76,6 +81,7 @@ sub t {
   return 0;
 }
 
+# If the first passed argument is 1, print '..', else '.'
 sub n {
   if($_[0] == 1) {
       print("..");
@@ -84,7 +90,31 @@ sub n {
   }    
 }
 
+# Call `t()` with the HTTP query parameters 'x' and 'y'.
+# Using `t()`s output, call `n()` to expose success or failure.
 n(t(param("x"), param("y")));
 ```
 
+Again we are faced with a perl [CGI](http://www-igm.univ-mlv.fr/~dr/XPOSE2001/CGIavecPerl/cgi.html) as seen in [level04](../../level04/ressources//README.md).
+
 ### Vulnerability
+
+`/home/user/level12/level12.pl` uses [**backsticks**](https://www.php.net/manual/en/language.operators.execution.php) with vaguely normalized user input.
+This provides us with a rather direct **Arbitrary Code Execution** (ACE) opportunity.
+
+`/home/user/level12/level12.pl` is executed through a CGI-enabled web server that enforces a sandboxed environment. We cannot perform standard environment manipulation.
+
+Furthermore, the script imposes significant technical hurdles due to its internal payload normalization process. The input is forced to uppercase and truncated at the first whitespace character, leading to the following constraints:
+- Standard Unix binaries are case-sensitive and typically lowercased, thus cannot be invoked.
+- Unix file paths are case-sensitive, and we lack the necessary permissions to create uppercase binaries within system directories or any path included in the `$PATH` environment variable.
+
+Being quite limited, we decided to check path resolution options such as those provided by posix compatible [shell globbing](https://man7.org/linux/man-pages/man7/glob.7.html).
+
+
+```sh
+$ echo 'getflag > /tmp/checkflag' > /tmp/EXPLOIT && chmod +x /tmp/EXPLOIT
+# Let's overtake the execution context using $() and call our path using shell globbing.
+$ curl localhost:4646?x='$(/*/EXPLOIT)'; cat /tmp/checkflag
+```
+
+And there is our flag ! :)

