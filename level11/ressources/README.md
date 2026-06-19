@@ -32,7 +32,7 @@ We determined `/home/user/level11/level11.lua` is a prime candidate for privileg
 - The group owner is `level11` (which matches our user's group).
 - It has the `setuid permission bit` (`s`) set, which grants us the owner's privileges during the program's execution.
 
-This means that, during script execution through the user `level10`, the privilege state is as follows:  
+This means that, during script execution through the user `level11`, the privilege state is as follows:  
 - Real UID: `level11`
 - Real GUID: `level11`
 - Effective UID: `flag11`
