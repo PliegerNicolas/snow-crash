@@ -177,13 +177,11 @@ main() {
     init_ssh_socket "$level01_socket_path" "$host" "$port" "$level01_username" "$level01_password" || exit 1;
     flag01_hashed_password=$(ssh_exec_via_socket "$level01_socket_path" "$host" "$port" "$level01_username" "cat /etc/passwd | grep ${flag01_username} | cut -d: -f2")
     close_ssh_socket "$level01_socket_path" "$host" "$port" "$level01_username";
-
     "$hashcat_symlink_path/hashcat.sh" --download-wordlists "https://weakpass.com/download/90/rockyou.txt.gz";
     flag01_password=$("$hashcat_symlink_path/hashcat.sh" --crack "$flag01_hashed_password");
 
     init_ssh_socket "$flag01_socket_path" "$host" "$port" "$flag01_username" "$flag01_password" || exit 1;
-    checkflag_str=$(ssh_exec_via_socket "$flag01_socket_path" "$host" "$port" "$flag01_username" "getflag");
-    checkflag=$(echo -n "$checkflag_str" | head -n 1 | awk  '{print $NF}');
+    checkflag=$(ssh_exec_via_socket "$flag01_socket_path" "$host" "$port" "$flag01_username" "getflag" | head -n 1 | awk '{print $NF}');
     close_ssh_socket "$flag01_socket_path" "$host" "$port" "$flag01_username";
 
     flag_outpath="$CURR_DIR_PATH/../flag";

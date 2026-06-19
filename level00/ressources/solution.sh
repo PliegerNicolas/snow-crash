@@ -189,11 +189,7 @@ main() {
     close_ssh_socket "$level00_socket_path" "$host" "$port" "$level00_username";
 
     init_ssh_socket "$flag00_socket_path" "$host" "$port" "$flag00_username" "$flag00_password" || exit 1;
-    checkflag=$(
-        checkflag_str=$(ssh_exec_via_socket "$flag00_socket_path" "$host" "$port" "$flag00_username" "getflag");
-        checkflag=$(echo -n "$checkflag_str" | head -n 1 | awk  '{print $NF}');
-        echo "$checkflag";
-    );
+    checkflag=$(ssh_exec_via_socket "$flag00_socket_path" "$host" "$port" "$flag00_username" "getflag" | head -n 1 | awk '{print $NF}');
     close_ssh_socket "$flag00_socket_path" "$host" "$port" "$flag00_username";
 
     flag_outpath="$CURR_DIR_PATH/../flag";

@@ -170,13 +170,11 @@ main() {
     init_ssh_socket "$level09_socket_path" "$host" "$port" "$level09_username" "$level09_password";
     encoded_token=$(ssh_exec_via_socket "$level09_socket_path" "$host" "$port" "$level09_username" "cat /home/user/level09/token");
     close_ssh_socket "$level09_socket_path" "$host" "$port" "$level09_username";
-
     decoded_token=$(decode $encoded_token);
     flag09_password="$decoded_token";
 
     init_ssh_socket "$flag09_socket_path" "$host" "$port" "$flag09_username" "$flag09_password";
-    checkflag_str=$(ssh_exec_via_socket "$flag09_socket_path" "$host" "$port" "$flag09_username" "getflag");
-    checkflag=$(echo -n "$checkflag_str" | head -n 1 | awk  '{print $NF}');
+    checkflag=$(ssh_exec_via_socket "$flag09_socket_path" "$host" "$port" "$flag09_username" "getflag" | head -n 1 | awk '{print $NF}');
     close_ssh_socket "$flag09_socket_path" "$host" "$port" "$flag09_username";
 
     flag_outpath="$CURR_DIR_PATH/../flag";
