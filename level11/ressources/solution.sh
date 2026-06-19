@@ -117,7 +117,6 @@ main() {
     checkflag=$(ssh_exec_via_socket "$level11_socket_path" "$host" "$port" "$level11_username" "cat /tmp/checkflag" | head -n 1 | awk  '{print $NF}');
     close_ssh_socket "$level11_socket_path" "$host" "$port" "$level11_username";
 
-
     flag_outpath="$CURR_DIR_PATH/../flag";
     echo "Checkflag: $checkflag";
     echo -n "$checkflag" > "$flag_outpath";
