@@ -129,21 +129,12 @@ main() {
     packet_capture_filepath="$tshark_symlink_path/pcap/in.pcap";
 
     init_ssh_socket "$level02_socket_path" "$host" "$port" "$level02_username" "$level02_password" || exit 1;
-    ssh_exec_via_socket "$level02_socket_path" "$host" "$port" "$level02_username" "cat level02.pcap" > "$packet_capture_filepath";
+    scp -o "ControlPath=$level02_socket_path" "$level02_username@$host:~/level02.pcap" "$CURR_DIR_PATH/tshark/pcap/in.pcap";
     close_ssh_socket "$level02_socket_path" "$host" "$port" "$level02_username";
-
-    if [ ! -f "$packet_capture_filepath" ]; then
-        log "Error: the pcap file was not found after downloading it from the level02 server." >&2;
-        return 1;
-    fi
-
-    pcap_hexdump=$("$tshark_symlink_path/tshark.sh" --hexdump-tcp "$packet_capture_filepath");
-    pcap_asciidump=$(echo "$pcap_hexdump" | xxd -r -p);
-    flag02_password=$(echo "$pcap_asciidump" | grep "Password: " | head -n 1 | awk '{print $NF}');
+    flag02_password=$("$tshark_symlink_path/tshark.sh" --hexdump-tcp "$packet_capture_filepath" | xxd -r -p | grep -a "Password: " | head -n 1 | awk '{print $NF}')
 
     init_ssh_socket "$flag02_socket_path" "$host" "$port" "$flag02_username" "$flag02_password" || exit 1;
-    checkflag_str=$(ssh_exec_via_socket "$flag02_socket_path" "$host" "$port" "$flag02_username" "getflag");
-    checkflag=$(echo -n "$checkflag_str" | head -n 1 | awk  '{print $NF}');
+    checkflag=$(ssh_exec_via_socket "$flag02_socket_path" "$host" "$port" "$flag02_username" "getflag" | head -n 1 | awk  '{print $NF}');
     close_ssh_socket "$flag02_socket_path" "$host" "$port" "$flag02_username";
 
     flag_outpath="$CURR_DIR_PATH/../flag";
