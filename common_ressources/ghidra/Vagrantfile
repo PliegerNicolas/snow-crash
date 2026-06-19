@@ -15,7 +15,7 @@ Vagrant.configure("2") do |config|
   end
 
   config.vm.synced_folder ".", "/vagrant", disabled: true
-  config.vm.synced_folder "./data", "/vagrant/data", owner: "vagrant", group: "vagrant"
+  config.vm.synced_folder "./data", "/vagrant_data", owner: "vagrant", group: "vagrant"
 
   config.vm.provision "shell", inline: <<-SHELL
     set -euo pipefail
