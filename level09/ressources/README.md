@@ -172,19 +172,18 @@ code_r0x080489ca:
 }
 ```
 
-The program seems heavily protected:
-- It prevents the process from being traced by debugging tools such as GDB and ltrace.
+The program seems heavily protected but relies on function calls whoes return values could be overwritten using debugging tools such as [GDB](https://sourceware.org/gdb/).
+- It attempts to prevents the process from being traced by debugging tools such as GDB and ltrace.
 - Il attempts to prevent injection of shared libraries by checking the absence of the `LD_PRELOAD` env var, the absence of `/etc/ld.so.preload` file and inspecting currently loaded libraries in memory through `/proc/self/maps`.
 - It relies on common protection mechanisms introduced by traditionnal compilers such as stack canaries.
 
-At the end of the program, we can see a loop that could be translated to something such as:
+After all these checks it executes a loop that could be translated to something such as
 ```c
 for (size_t i = 0; i < strlen(argv[1]); i++)
   putchar(argv[1][i] + i);
 ```
-This matches the expected behaviour we observed before.
 
-We just need to reverse the program's behaviour to decrypt to token.
+We decided to try to reverse engineer the encryption algorythm who seems rather simple.
 ```sh
 char_to_decimal() {
     char="$1";

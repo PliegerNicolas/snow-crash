@@ -121,4 +121,44 @@ The script seems to:
 
 ### Vulnerability
 
-Contrary to what we noticed in [level09](../../level09/ressources//README.md)
+Similary to [level09](../../level09/ressources/README.md) we have two evident options:
+1. Bypass the `getuid != 4242` call by modifying it's return value using a debugging tools such as [GDB](https://sourceware.org/gdb/).
+2. Extract the present token and reverse engineer `ft_des`.
+
+We decided to use [GDB](https://sourceware.org/gdb/) as it seemed easier.
+```sh
+$ cat << 'EOF' > /tmp/exploit.gdb
+set confirm off
+set pagination off
+set print elements 0
+
+###########
+#  MACROS #
+###########
+
+define goto
+    tbreak $arg0
+    continue
+end
+
+define goto_exec
+    goto $arg0
+    finish
+end
+
+###########
+# /MACROS #
+###########
+
+file /home/user/level13/level13
+start
+goto_exec getuid
+set $eax = 4242
+continue
+quit
+EOF
+
+$ gdb -x /tmp/exploit.gdb
+```
+
+And there is the flag !
