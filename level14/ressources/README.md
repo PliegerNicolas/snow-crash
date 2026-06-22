@@ -376,8 +376,46 @@ int main(void) {
 
 ### Vulnerability
 
-The script wants us to:
-- Ensure all the functions called for security prospection return a valid value (usually 0).
-- Ensure that `getuid()`'s return value matches one of the hardcoded recognized values.
+Even though the script seems heavily protected. No kernel-side checks are needed and it all rely on function return values.
+Using debugging tools such as [gdb](https://sourceware.org/gdb/), we can:
+- We can alter the return values of the protective functions (`ptrace()`, getenv(`LD_PRELOAD`), ...).
+- We can alter the value of the current uid to one of the hardecoded recognized values.
+We could also attempt to:
+- Reverse-engineer the `ft_des()` function and apply it on the hardcoded encrypted strings.
 
-We can manipulate
+When running the script with [gdb](https://sourceware.org/gdb/), the only protection we trigger is `ptrace()`.  
+But as it is a runtime check, we can modify its return value using our debugging tool. In other workds, check is **superficial**.
+
+```sh
+$ cat << 'EOF' > /tmp/exploit.gdb
+set confirm off
+set pagination off
+set print elements 0
+
+define goto
+    tbreak $arg0
+    continue
+end
+define goto_exec
+    goto $arg0
+    finish
+end
+define goto_exec_assign
+    goto_exec $arg0
+    nexti
+end
+
+file /bin/getflag
+start
+goto_exec ptrace
+set $eax = 0
+goto_exec getuid
+set $eax = 3014
+
+continue
+quit
+
+$ gdb -x /tmp/exploit.gdb
+```
+
+And there is the flag !

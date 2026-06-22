@@ -133,8 +133,6 @@ main() {
     close_ssh_socket "$level02_socket_path" "$host" "$port" "$level02_username";
     flag02_password=$("$tshark_symlink_path/tshark.sh" --hexdump-tcp "$CURR_DIR_PATH/tshark/pcap/in.pcap" | xxd -r -p | grep -a "Password: " | head -n 1 | awk '{print $NF}')
 
-    echo "tmp: $flag02_password"
-
     init_ssh_socket "$flag02_socket_path" "$host" "$port" "$flag02_username" "$flag02_password" || exit 1;
     checkflag=$(ssh_exec_via_socket "$flag02_socket_path" "$host" "$port" "$flag02_username" "getflag" | head -n 1 | awk  '{print $NF}');
     close_ssh_socket "$flag02_socket_path" "$host" "$port" "$flag02_username";

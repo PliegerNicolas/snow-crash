@@ -117,11 +117,13 @@ main() {
 
     init_ssh_socket "$level14_socket_path" "$host" "$port" "$level14_username" "$level14_password";
     scp -o "ControlPath=$level14_socket_path" "$CURR_DIR_PATH/exploit.gdb" "$level14_username@$host:$exploit_path";
-    ssh_exec_via_socket "$level14_socket_path" "$host" "$port" "$level14_username" "gdb -x $exploit_path 2>/dev/null";
+    flag14_password=$(ssh_exec_via_socket "$level14_socket_path" "$host" "$port" "$level14_username" "gdb -x $exploit_path 2>/dev/null | grep 'Check flag'" | head -n 1 | awk '{ print $NF }');
     ssh_exec_via_socket "$level14_socket_path" "$host" "$port" "$level14_username" "rm -f '$exploit_path' '$checkflag_capture_path'";
     close_ssh_socket "$level14_socket_path" "$host" "$port" "$level14_username";
 
+    checkflag="$flag14_password"
     # init_ssh_socket "$flag14_socket_path" "$host" "$port" "$flag14_username" "$flag14_password";
+    # checkflag=$(ssh_exec_via_socket "$flag14_socket_path" "$host" "$port" "$flag14_username" "getflag" | head -n 1 | awk  '{print $NF}');
     # close_ssh_socket "$flag14_socket_path" "$host" "$port" "$flag14_username";
 
     flag_outpath="$CURR_DIR_PATH/../flag";
