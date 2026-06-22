@@ -229,68 +229,7 @@ This means that the program is technically authorized to open `/home/user/level1
 
 #### Tracing tools
 
-In the **[previous exercice](../../level09/ressources/README.md)**, we noticed that **`ptrace()`** was used to prevent usage of tracing and debugging tools such as **[ltrace](https://man7.org/linux/man-pages/man1/ltrace.1.html)** and **[gdb](https://man7.org/linux/man-pages/man1/gdb.1.html)**.  
-The current script **doesn't** ! Let's try to take advantage of that.
-
-Using **[gdb](https://man7.org/linux/man-pages/man1/gdb.1.html)** we can control and alter the behaviour of the program.  
-We **assumed** that GDB would inherit the setuid flag of the called script, but it doesn't.
-```gdb
-set confirm off
-set pagination off
-set print elements 0
-
-###########
-#  MACROS #
-###########
-
-define goto
-    tbreak $arg0
-    continue
-end
-
-define goto_exec
-    goto $arg0
-    finish
-end
-
-define goto_exec_assign
-    goto_exec $arg0
-    nexti
-end
-
-###########
-# /MACROS #
-###########
-
-file /home/user/level10/level10
-set args /home/user/level10/token localhost
-
-start
-
-# 1. Trick the program into thinking the `access()` call succeeded. Open will work due to the setuid flag.
-goto_exec access
-set $eax = 0
-
-# 2. Instead of creating a network fd, let's create an fd to write the output to the desired file.
-goto_exec_assign socket
-call close(fd)
-set $O_WRONLY = 01
-set $O_CREAT = 0100
-set $O_TRUNC = 01000
-set fd = (int)open("/tmp/token", $O_WRONLY | $O_CREAT | $O_TRUNC, 0644)
-
-p "Effective UID: "
-p geteuid()
-
-# 3. Skip the connect call
-goto_exec connect
-set $eax = 0
-
-continue
-exit 0
-```
-
-We then tried to attach gdb to the running process to bypass setuid limitations.
+Manipulation the program's runtime behaviour through debugging tools such as **[gdb](https://man7.org/linux/man-pages/man1/gdb.1.html)** would drop the setuid permissions when starting the script. It cannot be bypassed easily or at all due to `/proc/sys/kernel/yama/ptrace_scope`.
 ```sh
 $ /home/user/level10/level10 /home/user/level10/token localhost & PID=$!; kill -SIGSTOP $PID; gdb -p $PID;
 # ...
@@ -301,13 +240,9 @@ ptrace: Operation not permitted.
 # ...
 ```
 
-Unfortunately [Yama](https://www.kernel.org/doc/html/v5.1/admin-guide/LSM/Yama.html) prevents us from doing that.  
-We decided to scrape this approach here.
-
 #### Race condition file reference swap.
 
-We cannot influence the program’s behavior using debugging tools or tracers, nor can we modify its control flow.
-However, we can influence its execution environment.
+As we cannot influence the program’s behavior using debugging tools or tracers, nor modify its control flow, we considered influencing its execution environment.  
 Although `argv[1]` remains fixed for the program’s lifetime, it may reference a symbolic link whose target we control.
 By modifying this symlink, we can change the underlying file it points to.
 

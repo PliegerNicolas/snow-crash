@@ -126,12 +126,12 @@ main() {
     flag02_password="";
 
     tshark_symlink_path="$CURR_DIR_PATH/tshark";
-    packet_capture_filepath="$tshark_symlink_path/pcap/in.pcap";
+    tshark_pcap_path="$tshark_symlink_path/pcap/in.pcap";
 
     init_ssh_socket "$level02_socket_path" "$host" "$port" "$level02_username" "$level02_password" || exit 1;
-    scp -o "ControlPath=$level02_socket_path" "$level02_username@$host:~/level02.pcap" "$CURR_DIR_PATH/tshark/pcap/in.pcap";
+    scp -o "ControlPath=$level02_socket_path" "$level02_username@$host:~/level02.pcap" "$tshark_pcap_path";
     close_ssh_socket "$level02_socket_path" "$host" "$port" "$level02_username";
-    flag02_password=$("$tshark_symlink_path/tshark.sh" --hexdump-tcp "$packet_capture_filepath" | xxd -r -p | grep -a "Password: " | head -n 1 | awk '{print $NF}')
+    flag02_password=$("$tshark_symlink_path/tshark.sh" --hexdump-tcp "$CURR_DIR_PATH/tshark/pcap/in.pcap" | xxd -r -p | grep -a "Password: " | head -n 1 | awk '{print $NF}')
 
     init_ssh_socket "$flag02_socket_path" "$host" "$port" "$flag02_username" "$flag02_password" || exit 1;
     checkflag=$(ssh_exec_via_socket "$flag02_socket_path" "$host" "$port" "$flag02_username" "getflag" | head -n 1 | awk  '{print $NF}');

