@@ -55,10 +55,8 @@ tshark_hexdump_tcp_payload() {
     fi
 
     docker run --rm \
-        --user "$(id -u):$(id -g)" \
         --volume "$input_pcap_file:/in.pcap:ro" \
-        $TSHARK_DOCKER_IMAGE -r /in.pcap -Y "tcp.payload && tcp.stream==0" -T fields -e tcp.payload \
-    2>/dev/null;
+        $TSHARK_DOCKER_IMAGE -r /in.pcap -Y "tcp.payload && tcp.stream==0" -T fields -e tcp.payload;
 }
 
 ############
